@@ -1,6 +1,6 @@
 from reco.reco import input_data
-from reco.reco import train_cnn
-from reco.reco import test_cnn
+from reco.reco.train_cnn import train_cnn
+from reco.reco.test_cnn import test_cnn
 
 if __name__ == '__main__':
 

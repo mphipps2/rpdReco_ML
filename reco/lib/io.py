@@ -1,8 +1,15 @@
-def get_dataset(folder = "./Data/reduced_tree_tmp/", side = 'A'):
+import reco.lib.process as process
+
+def get_dataset(folder = "./Data/reduced_tree_tmp/", side = 'A', subtract = True):
         output = []
         start = time.time()
 
         data = pd.read_pickle(folder + f"{side}charge.pickle")
+        data = data.drop_duplicates()
+
+        if subtract:
+                data = process.subtract_signals(data)
+                
         return data
         # for i in range(100, 1000100, 100):
         #         if i % 100000 == 0:
