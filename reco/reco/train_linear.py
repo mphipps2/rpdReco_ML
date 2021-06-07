@@ -12,7 +12,7 @@ from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 import tensorflow.keras as keras
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 def get_model():
     #linear model, 16 input charges -> 2 positional coordinates
@@ -25,7 +25,7 @@ def get_model():
 
 
 def train_linear():
-    train_size = 0.8
+    train_size = 0.65
     model_num = 1
     model_loss = 'mse'
     filepath = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles"
@@ -40,12 +40,12 @@ def train_linear():
     y = A_sub.iloc[:,0:2]
 
     #using state 42 for verification purposes
-    train_X, train_y, val_X, val_y = train_test_split(X, y, - train_size, random_state = 42)
+    train_X, tmpX, train_y, tmpy = train_test_split(X, y, - train_size, random_state = 42)
+    test_X, val_X, test_y, val_y = train_test_split(tmpX,tmpy, - train_size, random_state = 42)
+
     print("Saving Data Set")
-    train_X.to_pickle(filepath)
-    train_y.to_pickle(filepath)
-    val_X.to_pickle(filepath)
-    val_y.to_pickle(filepath)
+    test_X.to_pickle(filepath)
+    test_y.to_pickle(filepath)
 
     model = get_model()
     model.summary()
@@ -83,7 +83,7 @@ def train_linear():
     plt.xlabel('Epoch')
     plt.ylabel('Mean Squared Error')
     plt.legend()
-    plt.savefig(f'Output/fig/model{model_num}_mse_{model_loss}Loss.png')
+    plt.savefig(filepath + f'//model{model_num}_mse_{model_loss}Loss.png')
 
     plt.figure(2)
     plt.plot(epochs, train_mae, 'o', color='black', label='Training mae')
@@ -92,6 +92,6 @@ def train_linear():
     plt.xlabel('Epoch')
     plt.ylabel('Mean Absolute Error')
     plt.legend()
-    plt.savefig(f'Output/fig/model{model_num}_mae_{model_loss}Loss.png')
+    plt.savefig(filepath + f'//model{model_num}_mae_{model_loss}Loss.png')
 
 
