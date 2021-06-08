@@ -1,9 +1,14 @@
+import os
 import sys
+
+from tensorflow.python.keras.layers.normalization.batch_normalization import BatchNormalization
+sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
+
 
 import reco.lib.norm as norm
 import reco.lib.models as models
 import reco.lib.process as process
-import reco.lib.vis as vis
+#import reco.lib.vis as vis
 import reco.lib.io as io
 
 from sklearn.model_selection import train_test_split
@@ -16,21 +21,23 @@ import matplotlib.pyplot as plt
 
 def get_model():
     #linear model, 16 input charges -> 2 positional coordinates
-    Q_Avg = keras.Sequential([
-        layers.Dense(units=2, activation = 'linear', input_shape=[16])
+    model = keras.Sequential([
+        layers.BatchNormalization(input_shape=[16]),
+        layers.Dense(units=2)
     ])
-    model = keras.Model(inputs=[Q_Avg.input], outputs=[Q_Avg])
     return model
-
 
 
 def train_linear():
     train_size = 0.65
-    model_num = 1
+    model_num = 3
     model_loss = 'mse'
-    filepath = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles"
+    filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
+    os.mkdir(filepath)
+    print("Getting Dataset...")
+    random_state = 42
 
-    A = io.get_dataset(folder = filepath, side = 'A')
+    A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = 'A')
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
@@ -38,20 +45,23 @@ def train_linear():
     #sets input as rpd_charges and output as avgQPos
     X = A_sub.iloc[:,8:24]
     y = A_sub.iloc[:,0:2]
+    print("Dataset retrieved.")
 
     #using state 42 for verification purposes
-    train_X, tmpX, train_y, tmpy = train_test_split(X, y, - train_size, random_state = 42)
-    test_X, val_X, test_y, val_y = train_test_split(tmpX,tmpy, - train_size, random_state = 42)
+    train_X, tmpX, train_y, tmpy = train_test_split(X, y, train_size = train_size, random_state = random_state)
+    test_X, val_X, test_y, val_y = train_test_split(tmpX,tmpy, train_size = train_size, random_state = random_state)
 
     print("Saving Data Set")
-    test_X.to_pickle(filepath)
-    test_y.to_pickle(filepath)
+    test_X.to_pickle(filepath + '//test_X.pickle')
+    test_y.to_pickle(filepath + '//test_y.pickle')
 
     model = get_model()
+    print("Model Received.")
     model.summary()
-    model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse'])
-    early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience = 10, restore_best_weights = True)
+    model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse', 'msle'])
+    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, monitor='val_loss', patience = 10, restore_best_weights = True)
 
+    print("Starting training:")
     history = model.fit(
         train_X, train_y,
         validation_data = (val_X, val_y),
@@ -61,24 +71,30 @@ def train_linear():
         verbose=1
     )
 
-    model.load_weights(filepath)
-    model.save(f'C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//linear_{model_num}_{model_loss}.h5')
-    f = open(f'C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//linear_{model_num}.txt', 'w')
-    sys.stdout = f
-    f.close()
+    print("Training completed.")
+    model.save(filepath + f'//linear_{model_num}_{model_loss}.h5')
+    
+    
 
     train_mse = history.history['mse']
     val_mse = history.history['val_mse']
     train_mae = history.history['mae']
     val_mae = history.history['val_mae']
+    #train_msle = history.history['msle']
+    #val_msle = history.history['msle']
 
-    
+    f = open(filepath + f'//linear_{model_num}.txt', 'w')
+    f.write('Difference: Batch Normalization')
+    f.write('\nval_loss:' + str(val_mse))
+    weights = model.layers[-1].get_weights()
+    f.write('\n' + str(weights))
+    f.close()
+
     #Taken from train_cnn to compare vs cnn model
     epochs = range(1, len(train_mae) + 1)
     plt.figure(1)
     plt.plot(epochs, train_mse, 'o', color='black', label='Training set')
     plt.plot(epochs, val_mse, 'b', label='Validation set')
-    plt.ylim([0.383,0.398])
     plt.title('')
     plt.xlabel('Epoch')
     plt.ylabel('Mean Squared Error')
@@ -93,5 +109,16 @@ def train_linear():
     plt.ylabel('Mean Absolute Error')
     plt.legend()
     plt.savefig(filepath + f'//model{model_num}_mae_{model_loss}Loss.png')
+    '''
+    plt.figure(3)
+    plt.plot(epochs, train_msle, 'o', color='black', label='Training msle')
+    plt.plot(epochs, val_msle, 'b', label='Validation msle')
+    plt.title('')
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Squared Logarithmic Error')
+    plt.legend()
+    plt.savefig(filepath + f'//model{model_num}_msle_{model_loss}Loss.png')
+    '''
+    print('val loss:', val_mse)
 
 
