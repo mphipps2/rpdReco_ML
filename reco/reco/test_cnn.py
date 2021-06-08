@@ -21,54 +21,7 @@ import tensorflow as tf
 print('tensorflow version: ', tf.__version__)
 
 
-def blur_neutron(n_hit):
-    blur = []
-
-    for i in range(n_hit.shape[0]):
-        blur.append(np.random.normal(n_hit[i], n_hit[i] * 0.171702))
-    return np.array(blur)
-
-def get_unit_vector(arr):
-    output = []
-    norm =  np.linalg.norm(arr, axis = 1)
-    for i in range(arr.shape[0]):
-        output.append([arr[i][0] / norm[i], arr[i][1] / norm[i]])
-    return np.array(output)
-
-# def get_unit_vector(arr,n_neutrons):
-#     output = []
-#     norm =  np.linalg.norm(arr, axis = 1)
-#     for i in range(arr.shape[0]):
-#         norm = np.sqrt(np.power(arr[i][0] * n_neutrons[i],2) + np.power(arr[i][1] * n_neutrons[i],2))
-#         output.append([(arr[i][0] * n_neutrons[i]) / norm, (arr[i][1] * n_neutrons[i]) / norm])
-#     return np.array(output)
-
-
-def process_signal(ary, normalization = False, flatten = False, pad = 1):
-    if normalization:
-            ary = np.array([i.reshape(4,4,1)/np.max(i) for i in ary])
-    else:
-        ary = np.array([i.reshape(4,4,1) for i in ary])
-    if flatten:
-            ary = np.array([i.reshape(16) for i in ary])
-    if pad:
-        ary = np.pad(ary[:, :, :, :], ((0, 0), (pad, pad), (pad, pad), (0,0)), 'constant')
-    return ary
-
-
-def average_vector(QA, QB):
-    NormA = np.linalg.norm(QA, axis = 1)
-    NormB = np.linalg.norm(QB, axis = 1)
-    NA = np.array([QA[:,0 ] / NormA, QA[:,1 ] / NormA])
-    NB = np.array([QB[:,0 ] / NormB, QB[:,1 ] / NormB])
-    flip_B = -NB
-    avgx = (NA[0] + flip_B[0]) / 2     
-    avgy = (NA[1] + flip_B[1]) / 2     
-    avg = np.arctan2(avgy, avgx)    
-    return NA, NB, avgx, avgy, avg
-
-
-if __name__ == '__main__':
+def test_cnn():
     uproot_installed = True
     fileName = 'model_21_mseLoss'
     outA = np.load("./Data/test_set/testA.npy", allow_pickle = True)

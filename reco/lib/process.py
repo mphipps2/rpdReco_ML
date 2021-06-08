@@ -6,14 +6,14 @@ def blur_neutron(n_hit):
         return np.array(blur)
 
 
-def subtract_signals2(data):
+def subtract_signals_old(data):
         for x in range(15,3,-1):
                 subtr_chan = x - 4
                 data[f'channel_{x}'] = data[f'channel_{x}'] - data[f'channel_{subtr_chan}']
         return data
 
 
-def subtract_signals3(data):
+def subtract_signals(data):
         for row in range(3,0,-1):
                 for col in range(0,4,1):
                         subtr_row = row - 1

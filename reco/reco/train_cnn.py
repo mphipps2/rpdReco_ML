@@ -65,18 +65,12 @@ def train_cnn():
     model_loss = 'mae'
     do_z_norm = False
     do_neutron_norm = False
+    do_q_unit_vector = True
     
-    A = io.get_dataset(folder = "./Data/test_set/", side = 'A')
-    B = io.get_dataset(folder = "./Data/test_set/",side = 'B')
+    A = io.get_dataset(folder = "./Data/test_set/", side = 'A', subtract = True)
+    B = io.get_dataset(folder = "./Data/test_set/", side = 'B', subtract = True)
     print('A: ', A)
     
-    A = A.drop_duplicates()
-    B = B.drop_duplicates()
-
-    print('columns: ', list(A.columns))
-    A_subtr = process.subtract_signals3(A)
-    B_subtr = process.subtract_signals3(B)
-
     if do_z_norm:
         A = z_norm(A)
         B = z_norm(B)
@@ -84,70 +78,50 @@ def train_cnn():
     print('A after dropping duplicates and subtracting: ', A)
 
     # eg) 60/20/20 (training, validation, testing) -- data is shuffled but in a predictable way that's the same every time
-    trainA_raw, tmpA_raw, trainB_raw, tmpB_raw = train_test_split(A, B, test_size=1. - train_size, random_state = 42)
-    testA_raw, valA_raw, testB_raw, valB_raw = train_test_split(tmpA_raw, tmpB_raw, test_size=0.5, random_state = 42)
-
-    trainA, tmpA, trainB, tmpB = train_test_split(A_subtr, B_subtr, test_size=1. - train_size, random_state = 42)
+    trainA, tmpA, trainB, tmpB = train_test_split(A, B, test_size=1. - train_size, random_state = 42)
     testA, valA, testB, valB = train_test_split(tmpA, tmpB, test_size=0.5, random_state = 42)    
-
-    print("Save test set")
-    np.save("./Data/test_set/testA_local.npy", testA)
-    np.save("./Data/test_set/testB_local.npy", testB)
-    np.save("./Data/test_set/testA_raw_local.npy", testA_raw)
-    np.save("./Data/test_set/testB_raw_local.npy", testB_raw)
-
     
     train = trainA.append(trainB).to_numpy()
     val = valA.append(valB).to_numpy()
     test  =  testA.append(testB).to_numpy()
     print('train in numpy: ', train)
 
+    # RPD data
     train_signal = train[:,8:]
     val_signal = val[:,8:]
-    test_signal  = test[:,8:]
-
-    print('summing data')
-    print('train_signal shape ', np.shape(train_signal), ' type: ', type(train_signal))
-    integrated_data = train_signal.sum(axis=0).flatten()
-    print("integrated_data ", integrated_data)
-    print('integrated data shape: ', np.shape(integrated_data), ' type ' , type(integrated_data))    
-    integrated_data = np.reshape(integrated_data(4,4))
-    heatmap2d(integrated_data,'viridis','Output/fig/integratedChargeMap_testSet.png')
-    
-    
-    print('train_signal: ',train_signal)
-    
-    train_inic_q_avg = train[:, 0:2]
-    val_inic_q_avg = val[:, 0:2]
-    test_inic_q_avg = test[:, 0:2]
-
-    train_hit = train[:, 7]
-    val_hit = val[:, 7]
-    test_hit  = test[:, 7]
-
-    train_unit_vector = norm.get_unit_vector(train_inic_q_avg)
-    val_unit_vector = norm.get_unit_vector(val_inic_q_avg)
-    test_unit_vector = norm.get_unit_vector(test_inic_q_avg)
 
     # note: by default normalization == false; flatten == false; padding == true
 #    train_signal = process_signal(train_signal,True)
     train_signal = process.process_signal(train_signal)
     val_signal = process.process_signal(val_signal)
-    test_signal = process.process_signal(test_signal)
     
-    train_hit = process.blur_neutron(train_hit)
-    val_hit = process.blur_neutron(val_hit)
-    test_hit = process.blur_neutron(test_hit)
+    # Generated Q avg vector
+    train_q_avg = train[:, 0:2]
+    val_q_avg = val[:, 0:2]
+    
+    if do_q_unit_vector:
+        train_q_vector = norm.get_unit_vector(train_q_avg)
+        val_q_vector = norm.get_unit_vector(val_q_avg)
 
+    train_hit = train[:, 7]
+    val_hit = val[:, 7]
+        
     if do_neutron_norm:
         train_hit = norm.norm_neutron(train_hit)
         val_hit = norm.norm_neutron(val_hit)
-        test_hit = norm.norm_neutron(test_hit)
+            
+    train_hit = process.blur_neutron(train_hit)
+    val_hit = process.blur_neutron(val_hit)
 
+    # Summed charge map across all events
+    integrated_data = train_signal.sum(axis=0).flatten()
+    integrated_data = np.reshape(integrated_data(4,4))
+    heatmap2d(integrated_data,'viridis','Output/fig/integratedChargeMap_testSet.png')
+    
     train_data = {"neutron_branch": train_hit, 'rpd_branch': train_signal}
-    train_target = { "Q_avg": train_unit_vector}
+    train_target = { "Q_avg": train_q_vector}
     val_data = {"neutron_branch": val_hit, 'rpd_branch': val_signal}
-    val_target = {"Q_avg": val_unit_vector}
+    val_target = {"Q_avg": val_q_vector}
 
     print('Checking GPU Availability:')
     print(device_lib.list_local_devices())
