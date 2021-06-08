@@ -20,26 +20,25 @@ import matplotlib.pyplot as plt
 def get_model():
     #linear model, 16 input charges -> 2 positional coordinates
     model = keras.Sequential([
-        layers.BatchNormalization(input_shape=[16]),
-        layers.Dense(units=2)
+        layers.Dense(units=2, input_shape=[16])
     ])
     return model
 
 
 def train_linear():
     train_size = 0.65
-    model_num = 3
-    model_loss = 'mse'
+    model_num = 4
+    model_loss = 'mae'
     filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
     os.mkdir(filepath)
     print("Getting Dataset...")
     random_state = 42
 
-    A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = 'A')
+    A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = '//A')
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
-    A_sub = process.subtract_signals3(A)
+    A_sub = process.subtract_signals(A)
     #sets input as rpd_charges and output as avgQPos
     X = A_sub.iloc[:,8:24]
     y = A_sub.iloc[:,0:2]
@@ -82,8 +81,8 @@ def train_linear():
     #val_msle = history.history['msle']
 
     f = open(filepath + f'//linear_{model_num}.txt', 'w')
-    f.write('Difference: Batch Normalization')
-    f.write('\nval_loss:' + str(val_mse))
+    f.write('Difference: Using MAE')
+    f.write('\nval_loss:' + str(val_mae))
     weights = model.layers[-1].get_weights()
     f.write('\n' + str(weights))
     f.close()

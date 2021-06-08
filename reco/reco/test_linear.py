@@ -16,8 +16,8 @@ import pandas as pd
 ##from matplotlib.colors import (normalization)
 
 def test_linear():
-    model_loss = 'mse'
-    file_num = 3
+    model_loss = 'mae'
+    file_num = 4
     filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{file_num}_{model_loss}"
     bins = 50
 
@@ -38,7 +38,7 @@ def test_linear():
     error = np.round(psi_comp.sem(), 3)
 
     #plots difference in angle
-    plt.figure(1)
+    plt.figure(0)
     plt.hist(psi_comp, bins = bins, density = True)
     gaussian = np.linspace(psi_comp.min(), psi_comp.max(), 100)
     plt.plot(gaussian, norm.pdf(gaussian, mean, sigma))
