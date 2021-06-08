@@ -1,7 +1,5 @@
 import os
 import sys
-
-from tensorflow.python.keras.layers.normalization.batch_normalization import BatchNormalization
 sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
 
 
