@@ -49,7 +49,7 @@ def get_averages(data):
 
 def train_linear():
     train_size = 0.65
-    model_num = 16
+    model_num = 19
     model_loss = 'mse'
     filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
     random_state = 42
@@ -61,7 +61,7 @@ def train_linear():
     print("A: ", A)
     print('columns: ', A.columns)
     A_sub = process.subtract_signals(A)
-    A_sub = get_averages(A_sub)
+    #A_sub = get_averages(A_sub)
     #using state 42 for verification purposes
     train_A, tmpA = train_test_split(A_sub, train_size = train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = train_size, random_state = random_state)
@@ -105,9 +105,7 @@ def train_linear():
     )
 
     print("Training completed.")
-    model.save(filepath + f'//linear_{model_num}_{model_loss}.h5')
-    
-    
+    model.save(filepath + f'//linear_{model_num}_{model_loss}.h5') 
 
     train_mse = history.history['mse']
     val_mse = history.history['val_mse']
