@@ -21,8 +21,8 @@ from scipy.optimize import curve_fit
 
 def get_model():
 	model = keras.Sequential([
-	layers.BatchNormalization(input_shape = [2]),
-	layers.Dense(units = 2, activation = 'linear')
+	#layers.BatchNormalization(input_shape = [2]),
+	layers.Dense(units = 2, activation = 'linear', input_shape = [2])
 	])
 	return model
 
@@ -68,89 +68,76 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.hist(psi_gen_rec, bins = bins, density = True)
 	plt.plot(genXspace, fit_function(genXspace,*genPopt))
 	plt.ylim(bottom = 0)
-	plt.title(r'$\Psi_{Gen}-\Psi_{recon}$')
-	plt.xlabel('Angle Difference (radians)')
-	plt.ylabel('Density Function')
+	#plt.title(r'$\Psi_{\rm Gen}-\Psi_{\rm Recon}$')
+	plt.xlabel(r'$\Psi_0^{\rm Gen-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
+	plt.ylabel('Density Function', fontsize = 12)
 	plt.text(-3,0.3,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
 
 	plt.figure(3)
 	plt.hist(psi_truth_rec, bins = bins, density = True)
 	plt.plot(truthXspace, fit_function(truthXspace, *truthPopt))
-	plt.title(r'$\Psi_{True}-\Psi_{recon}$')
-	plt.xlabel('Angle Difference(radians)')
-	plt.ylabel('Density Function')
+	#plt.title(r'$\Psi_0^{\rm True-A}-\Psi_{\rm Rec-A}$')
+	plt.xlabel(r'$\Psi_0^{\rm True-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
+	plt.ylabel('Density Function', fontsize = 12)
 	plt.text(-3,0.3,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
 
-	sig_data_gen = abs((psi_gen_rec-mean_gen)/sigma_gen)
-	sig_data_truth = abs((psi_truth_rec - mean_truth)/sigma_truth)
 	df = pd.DataFrame()
 	df['numParticles'] = numParticles
 	df['pt_nuclear'] = pt_nuc.multiply(1000)
-	df['sigma_gen'] = sig_data_gen
-	df['sigma_truth'] = sig_data_truth
-
-	df1 = df[(df['pt_nuclear']>=5) & (df['pt_nuclear']<15)]
-	df2 = df[(df['pt_nuclear']>=15) & (df['pt_nuclear']<25)]
-	df3 = df[(df['pt_nuclear']>=25) & (df['pt_nuclear']<35)]
-	df4 = df[(df['pt_nuclear']>=35) & (df['pt_nuclear']<45)]
-	df5 = df[(df['pt_nuclear']>=45)]
+	df['sigma_gen'] = psi_gen_rec
+	df['sigma_truth'] = psi_truth_rec
 	
-	df1['nbins'] = pd.cut(x = df1.iloc[:,0], bins =[20,25,30,35,40], labels = [20, 25, 30, 35], right = False, include_lowest = True)
-	df2['nbins'] = pd.cut(x = df2.iloc[:,0], bins =[20,25,30,35,40], labels = [20, 25, 30, 35], right = False, include_lowest = True)
-	df3['nbins'] = pd.cut(x = df3.iloc[:,0], bins =[20,25,30,35,40], labels = [20, 25, 30, 35], right = False, include_lowest = True)
-	df4['nbins'] = pd.cut(x = df4.iloc[:,0], bins =[20,25,30,35,40], labels = [20, 25, 30, 35], right = False, include_lowest = True)
-	df5['nbins'] = pd.cut(x = df5.iloc[:,0], bins =[20,25,30,35,40], labels = [20, 25, 30, 35], right = False, include_lowest = True)
-	
-	means1 = df1.groupby('nbins').mean()
-	serr1 = df1.groupby('nbins').sem()
-	means2 = df2.groupby('nbins').mean()
-	serr2 = df2.groupby('nbins').sem()
-	means3 = df3.groupby('nbins').mean()
-	serr3 = df3.groupby('nbins').sem()
-	means4 = df4.groupby('nbins').mean()
-	serr4 = df4.groupby('nbins').sem()
-	means5 = df5.groupby('nbins').mean()
-	serr5 = df5.groupby('nbins').sem()
+	#stratifies based on pt_nuclear
+	df['ptBins'] = pd.cut(x = df.iloc[:,1], bins = [5, 15, 25, 35, 45, np.inf], labels = ['pt1', 'pt2', 'pt3', 'pt4', 'pt5'], right = False, include_lowest = True)
+	#creates bins for neutron clusters. For future reference, do not do this in python
+	groupLabels = [20, 25, 30, 35]
+	df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
+	print(df)
 
+	std = df.groupby(['ptBins','nbins']).std()
+	sem = df.groupby(['ptBins','nbins']).sem()
+	
 	plt.figure(4)
 	ax = plt.figure(4).gca()
-	ax.xaxis.set_major_locator(MaxNLocator(nbins = 5, integer=True))
-	plt.plot(means1.index, means1.sigma_gen, 'go', label = r'$5\leq\ p_T^{nuclear}<15$ MeV')
-	plt.errorbar(means1.index, means1.sigma_gen, yerr=serr1.sigma_gen, fmt = 'go')
-	plt.plot(means2.index, means2.sigma_gen, 'bo', label = r'$15\leq p_T^{nuclear}<25$ MeV',)
-	plt.errorbar(means2.index, means2.sigma_gen, yerr=serr2.sigma_gen, fmt = 'bo')
-	plt.plot(means3.index, means3.sigma_gen, 'ro', label = r'$25\leq p_T^{nuclear}<35$ MeV')
-	plt.errorbar(means3.index, means3.sigma_gen, yerr=serr3.sigma_gen, fmt = 'ro')
-	plt.plot(means4.index, means4.sigma_gen, 'mo', label = r'$35\leq p_T^{nuclear}<45$ MeV')
-	plt.errorbar(means4.index, means4.sigma_gen, yerr=serr4.sigma_gen, fmt = 'mo')
-	plt.plot(means5.index, means5.sigma_gen, 'ko', label = r'$45\leq p_T^{nuclear}$ MeV')
-	plt.errorbar(means5.index, means5.sigma_gen, yerr=serr5.sigma_gen, fmt = 'ko')
-	plt.title('Gen Residuals')
-	plt.xlabel(r'$N_{neutrons}$')
-	plt.ylabel(r'$\sigma_{\Psi_{gen}-\Psi_{rec}}$')
-	plt.ylim(bottom = 0, top = 1.8)
+	ax.xaxis.set_major_locator(MaxNLocator(nbins = 4, integer=True))
+	plt.plot(groupLabels, std.loc['pt1'].sigma_gen, 'gs', label = r'$5\leq p_T^{nuclear}<15$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt1'].sigma_gen, yerr=sem.loc['pt1'].sigma_gen, fmt = 'gs')
+	plt.plot(groupLabels, std.loc['pt2'].sigma_gen, 'bs', label = r'$15\leq p_T^{nuclear}<25$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt2'].sigma_gen, yerr=sem.loc['pt2'].sigma_gen, fmt = 'bs')
+	plt.plot(groupLabels, std.loc['pt3'].sigma_gen, 'rs', label = r'$25\leq p_T^{nuclear}<35$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt3'].sigma_gen, yerr=sem.loc['pt3'].sigma_gen, fmt = 'rs')
+	plt.plot(groupLabels, std.loc['pt4'].sigma_gen, 'ms', label = r'$35\leq p_T^{nuclear}<45$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt4'].sigma_gen, yerr=sem.loc['pt4'].sigma_gen, fmt = 'ms')
+	plt.plot(groupLabels, std.loc['pt5'].sigma_gen, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt5'].sigma_gen, yerr=sem.loc['pt5'].sigma_gen, fmt = 'ks')
+	plt.grid(axis = 'x')
+    #plt.title('Gen Resolution', fontsize = 12)
+	plt.xlabel(r'$\rm N_{neutrons}$', fontsize = 12)
+	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Gen-A}_0-\Psi^{Rec-A}_0}$ [rad]', fontsize = 12)
+	plt.ylim(bottom = 0, top = 2 * std.loc['pt1'].sigma_gen.max())
 	plt.legend()
 	plt.savefig(filepath +  f'//model{file_num}_gen_stratsigmas.png')
-
+    
 	plt.figure(5)
 	ax = plt.figure(5).gca()
 	ax.xaxis.set_major_locator(MaxNLocator(nbins = 5, integer=True))
-	plt.plot(means1.index, means1.sigma_truth, 'go', label = r'$5\leq p_T^{nuclear}<15$ MeV')
-	plt.errorbar(means1.index, means1.sigma_truth, yerr=serr1.sigma_truth, fmt = 'go')
-	plt.plot(means2.index, means2.sigma_truth, 'bo', label = r'$15\leq p_T^{nuclear}<25$ MeV')
-	plt.errorbar(means2.index, means2.sigma_truth, yerr=serr2.sigma_truth, fmt = 'bo')
-	plt.plot(means3.index, means3.sigma_truth, 'ro', label = r'$25\leq p_T^{nuclear}<35$ MeV')
-	plt.errorbar(means3.index, means3.sigma_truth, yerr=serr3.sigma_truth, fmt = 'ro')
-	plt.plot(means4.index, means4.sigma_truth, 'mo', label = r'$35\leq p_T^{nuclear}<45$ MeV')
-	plt.errorbar(means4.index, means4.sigma_truth, yerr=serr4.sigma_truth, fmt = 'mo')
-	plt.plot(means5.index, means5.sigma_truth, 'ko', label = r'$45\leq p_T^{nuclear}$ MeV')
-	plt.errorbar(means5.index, means5.sigma_truth, yerr=serr5.sigma_truth, fmt = 'ko')
-	plt.title('Truth Residuals')
-	plt.xlabel(r'$N_{neutrons}$')
-	plt.ylabel(r'$\sigma_{\Psi_{truth}-\Psi_{rec}}$')
-	plt.ylim(bottom = 0, top = 2.4)
+	plt.plot(groupLabels, std.loc['pt1'].sigma_truth, 'gs', label = r'$5\leq p_T^{nuclear}<15$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt1'].sigma_truth, yerr=sem.loc['pt1'].sigma_truth, fmt = 'gs')
+	plt.plot(groupLabels, std.loc['pt2'].sigma_truth, 'bs', label = r'$15\leq p_T^{nuclear}<25$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt2'].sigma_truth, yerr=sem.loc['pt2'].sigma_truth, fmt = 'bs')
+	plt.plot(groupLabels, std.loc['pt3'].sigma_truth, 'rs', label = r'$25\leq p_T^{nuclear}<35$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt3'].sigma_truth, yerr=sem.loc['pt3'].sigma_truth, fmt = 'rs')
+	plt.plot(groupLabels, std.loc['pt4'].sigma_truth, 'ms', label = r'$35\leq p_T^{nuclear}<45$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt4'].sigma_truth, yerr=sem.loc['pt4'].sigma_truth, fmt = 'ms')
+	plt.plot(groupLabels, std.loc['pt5'].sigma_truth, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
+	plt.errorbar(groupLabels, std.loc['pt5'].sigma_truth, yerr=sem.loc['pt5'].sigma_truth, fmt = 'ks')
+	plt.grid(axis = 'x')
+    #plt.title('Truth Resolution')
+	plt.xlabel(r'$\rm N_{\rm neutrons}$', fontsize = 12)
+	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Truth-A}_0-\Psi^{Rec-A}_0}$ [rad]')
+	plt.ylim(bottom = 0, top = 2*std.loc['pt1'].sigma_truth.max())
 	plt.legend()
 	plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
 
@@ -174,7 +161,7 @@ def regular_model():
 
 def linear_model():
 	train_size = 0.65
-	model_num = 22
+	model_num = 21
 	model_loss = 'mse'
 	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
 	random_state = 42
