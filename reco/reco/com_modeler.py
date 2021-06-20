@@ -41,6 +41,9 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	psi_truth_rec = psi_truth.subtract(psi_rec)
 	psi_truth_rec[psi_truth_rec > np.pi] = -2*np.pi + psi_truth_rec
 	psi_truth_rec[psi_truth_rec < -np.pi] = 2*np.pi + psi_truth_rec
+	print('Event	psi_truth   psi_gen   psi_reco   psi_truth-reco   psi_gen-reco')
+	for i in range(len(psi_gen_rec)):
+		print(f'Event {i}: {psi_truth.loc[i]}   {psi_gen.loc[i]}   {psi_rec.loc[i]}   {psi_truth_rec.loc[i]}   {psi_gen_rec.loc[i]}')
 
 	#collects summary stats for difference in angle
 	mean_gen, sigma_gen = norm.fit(psi_gen_rec)
@@ -65,22 +68,22 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 
 	#plots difference in angle
 	plt.figure(2)
-	plt.hist(psi_gen_rec, bins = bins, density = True)
+	plt.hist(psi_gen_rec, bins = bins, density = False)
 	plt.plot(genXspace, fit_function(genXspace,*genPopt))
 	plt.ylim(bottom = 0)
 	#plt.title(r'$\Psi_{\rm Gen}-\Psi_{\rm Recon}$')
 	plt.xlabel(r'$\Psi_0^{\rm Gen-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,0.3,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
+	plt.text(-3,30000,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
 
 	plt.figure(3)
-	plt.hist(psi_truth_rec, bins = bins, density = True)
+	plt.hist(psi_truth_rec, bins = bins, density = False)
 	plt.plot(truthXspace, fit_function(truthXspace, *truthPopt))
 	#plt.title(r'$\Psi_0^{\rm True-A}-\Psi_{\rm Rec-A}$')
 	plt.xlabel(r'$\Psi_0^{\rm True-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,0.3,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
+	plt.text(-3,300,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
 
 	df = pd.DataFrame()
