@@ -29,6 +29,36 @@ def get_model():
 def fit_function(x, A, B, mu, sigma):
 	return A+B*np.exp(-(x-mu)**2/(2*sigma**2))
 
+def findCOM (rpdSignals):
+	print(rpdSignals)
+	com = pd.DataFrame(0, index = rpdSignals.index, columns = ['comX', 'comY'])
+	print(com)
+	input()
+	totalSignal = rpdSignals.sum(axis = 1)
+	print(totalSignal)
+	input()
+	for ch in range(len(rpdSignals.columns)):
+		x = 0
+		y = 0
+		if ch < 4: 
+			y = 1.5
+			print(rpdSignals.iloc[:,ch])
+		elif (ch >= 4 and ch < 8): y = 0.5
+		elif (ch >= 8 and ch < 12): y = -0.5
+		else: y = -1.5
+
+		if ch%4 == 0: x = 1.5
+		elif ch%4 == 1: x = 0.5
+		elif ch%4 == 2: x = -0.5
+		elif ch&4 == 3: x = -1.5
+
+		com.comX = com.comX.add(rpdSignals.iloc[:,ch]*x)
+		com.comY = com.comY.add(rpdSignals.iloc[:,ch]*y)
+	print(com)
+	input()
+	com = com.div(totalSignal, axis = 0)
+	return com
+
 def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	bins = 50
 	pt_nuc = A.iloc[:,4]
@@ -42,7 +72,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	psi_truth_rec[psi_truth_rec > np.pi] = -2*np.pi + psi_truth_rec
 	psi_truth_rec[psi_truth_rec < -np.pi] = 2*np.pi + psi_truth_rec
 	print('Event	psi_truth   psi_gen   psi_reco   psi_truth-reco   psi_gen-reco')
-	for i in range(len(psi_gen_rec)):
+	for i in range(10):
 		print(f'Event {i}: {psi_truth.loc[i]}   {psi_gen.loc[i]}   {psi_rec.loc[i]}   {psi_truth_rec.loc[i]}   {psi_gen_rec.loc[i]}')
 
 	#collects summary stats for difference in angle
@@ -54,14 +84,14 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 
 	genBins = np.linspace(psi_gen_rec.min(), psi_gen_rec.max(), bins+1)
 	genCenters = np.array([0.5*(genBins[i]+genBins[i+1]) for i in range(len(genBins)-1)])
-	genEntries, bins1 = np.histogram(psi_gen_rec, bins = bins, density = True)
+	genEntries, bins1 = np.histogram(psi_gen_rec, bins = bins, density = False)
 	genPopt,genPcov = curve_fit(fit_function, genCenters, genEntries, p0=[1, 1, genEntries.mean(), genEntries.std()])
 	print(genPopt)
 	genXspace = np.linspace(mean_gen-sigma_gen, mean_gen+sigma_gen, 100000)
 
 	truthBins = np.linspace(psi_truth_rec.min(), psi_truth_rec.max(), bins+1)
 	truthCenters = np.array([0.5*(truthBins[i]+truthBins[i+1]) for i in range (len(truthBins)-1)])
-	truthEntries, bins2 = np.histogram(psi_truth_rec, bins = bins, density = True)
+	truthEntries, bins2 = np.histogram(psi_truth_rec, bins = bins, density = False)
 	truthPopt, truthPcov = curve_fit(fit_function, truthCenters, truthEntries, p0=[1, 1, truthEntries.mean(), truthEntries.std()])
 	print(truthPopt)
 	truthXspace = np.linspace(mean_truth - sigma_truth, mean_truth + sigma_truth, 100000)
@@ -74,7 +104,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	#plt.title(r'$\Psi_{\rm Gen}-\Psi_{\rm Recon}$')
 	plt.xlabel(r'$\Psi_0^{\rm Gen-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,30000,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
+	plt.text(-3,300000,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
 
 	plt.figure(3)
@@ -83,7 +113,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	#plt.title(r'$\Psi_0^{\rm True-A}-\Psi_{\rm Rec-A}$')
 	plt.xlabel(r'$\Psi_0^{\rm True-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,300,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
+	plt.text(-3,30000,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
 	plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
 
 	df = pd.DataFrame()
@@ -101,6 +131,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 
 	std = df.groupby(['ptBins','nbins']).std()
 	sem = df.groupby(['ptBins','nbins']).sem()
+	print(std)
 	
 	plt.figure(4)
 	ax = plt.figure(4).gca()
@@ -147,16 +178,24 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.show()
 
 def regular_model():
+	centerX = 0
+	centerY = 0
 	model_num = 20
 	model_loss = 'CoM'
 	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
-	os.mkdir(filepath)
 
 	A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = '//A')
 	A = A.drop_duplicates()
 	A_sub = process.subtract_signals(A)
 
-	psi_rec = np.arctan2(A_sub.iloc[:,3],A_sub.iloc[:,2])
+	rpdSignals = A_sub.iloc[:,8:24]
+	com = findCOM(rpdSignals)
+
+	print(com)
+	input()
+	os.mkdir(filepath)
+
+	psi_rec = np.arctan2(com.iloc[:,1],com.iloc[:,0]+0.471659)
 	psi_gen = np.arctan2(A_sub.iloc[:,1],A_sub.iloc[:,0])
 	psi_truth = A_sub.iloc[:,5]
 
