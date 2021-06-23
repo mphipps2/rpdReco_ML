@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
 
 import reco.lib.norm as norm
@@ -10,6 +11,7 @@ import reco.lib.io as io
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers
+from random import randint
 
 import numpy as np
 import pandas as pd
@@ -29,20 +31,16 @@ def get_model():
 def fit_function(x, A, B, mu, sigma):
 	return A+B*np.exp(-(x-mu)**2/(2*sigma**2))
 
-def findCOM (rpdSignals):
-	print(rpdSignals)
-	com = pd.DataFrame(0, index = rpdSignals.index, columns = ['comX', 'comY'])
-	print(com)
-	input()
-	totalSignal = rpdSignals.sum(axis = 1)
-	print(totalSignal)
-	input()
-	for ch in range(len(rpdSignals.columns)):
+def findCOM (rpd):
+	print(rpd)
+	com = pd.DataFrame(0, index = rpd.index, columns = ['comX', 'comY'])
+	#input()
+	totalSignal = rpd.sum(axis = 1)
+	#input()
+	for ch in range(len(rpd.columns)):
 		x = 0
 		y = 0
-		if ch < 4: 
-			y = 1.5
-			print(rpdSignals.iloc[:,ch])
+		if ch < 4: y = 1.5
 		elif (ch >= 4 and ch < 8): y = 0.5
 		elif (ch >= 8 and ch < 12): y = -0.5
 		else: y = -1.5
@@ -52,14 +50,19 @@ def findCOM (rpdSignals):
 		elif ch%4 == 2: x = -0.5
 		elif ch&4 == 3: x = -1.5
 
-		com.comX = com.comX.add(rpdSignals.iloc[:,ch]*x)
-		com.comY = com.comY.add(rpdSignals.iloc[:,ch]*y)
-	print(com)
-	input()
-	com = com.div(totalSignal, axis = 0)
+		com.comX += x*rpd.iloc[:,ch]
+		com.comY += y*rpd.iloc[:,ch]
+	com.comX/=totalSignal
+	com.comY/=totalSignal
 	return com
 
-def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
+def getCOMReactionPlane(com, centerX, centerY):
+	com.comY = com.comY-centerY
+	com.comX = com.comX-centerX
+	phi = np.arctan2(com.comY, com.comX)
+	return phi
+
+def plotHistograms(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	bins = 50
 	pt_nuc = A.iloc[:,4]
 	numParticles = A.iloc[:,7]
@@ -85,14 +88,14 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	genBins = np.linspace(psi_gen_rec.min(), psi_gen_rec.max(), bins+1)
 	genCenters = np.array([0.5*(genBins[i]+genBins[i+1]) for i in range(len(genBins)-1)])
 	genEntries, bins1 = np.histogram(psi_gen_rec, bins = bins, density = False)
-	genPopt,genPcov = curve_fit(fit_function, genCenters, genEntries, p0=[1, 1, genEntries.mean(), genEntries.std()])
+	genPopt,genPcov = curve_fit(fit_function, genCenters, genEntries, p0=[40000, 60000, genEntries.mean(), genEntries.std()])
 	print(genPopt)
 	genXspace = np.linspace(mean_gen-sigma_gen, mean_gen+sigma_gen, 100000)
 
 	truthBins = np.linspace(psi_truth_rec.min(), psi_truth_rec.max(), bins+1)
 	truthCenters = np.array([0.5*(truthBins[i]+truthBins[i+1]) for i in range (len(truthBins)-1)])
 	truthEntries, bins2 = np.histogram(psi_truth_rec, bins = bins, density = False)
-	truthPopt, truthPcov = curve_fit(fit_function, truthCenters, truthEntries, p0=[1, 1, truthEntries.mean(), truthEntries.std()])
+	truthPopt, truthPcov = curve_fit(fit_function, truthCenters, truthEntries, p0=[40000, 40000, truthEntries.mean(), truthEntries.std()])
 	print(truthPopt)
 	truthXspace = np.linspace(mean_truth - sigma_truth, mean_truth + sigma_truth, 100000)
 
@@ -105,7 +108,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.xlabel(r'$\Psi_0^{\rm Gen-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
 	plt.text(-3,300000,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
-	plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
+	#plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
 
 	plt.figure(3)
 	plt.hist(psi_truth_rec, bins = bins, density = False)
@@ -114,7 +117,7 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.xlabel(r'$\Psi_0^{\rm True-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
 	plt.text(-3,30000,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
-	plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
+	#plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
 
 	df = pd.DataFrame()
 	df['numParticles'] = numParticles
@@ -128,10 +131,11 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	groupLabels = [20, 25, 30, 35]
 	df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
 	print(df)
-
+	
 	std = df.groupby(['ptBins','nbins']).std()
 	sem = df.groupby(['ptBins','nbins']).sem()
 	print(std)
+	print(sem)
 	
 	plt.figure(4)
 	ax = plt.figure(4).gca()
@@ -147,12 +151,12 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.plot(groupLabels, std.loc['pt5'].sigma_gen, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
 	plt.errorbar(groupLabels, std.loc['pt5'].sigma_gen, yerr=sem.loc['pt5'].sigma_gen, fmt = 'ks')
 	plt.grid(axis = 'x')
-    #plt.title('Gen Resolution', fontsize = 12)
+	#plt.title('Gen Resolution', fontsize = 12)
 	plt.xlabel(r'$\rm N_{neutrons}$', fontsize = 12)
 	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Gen-A}_0-\Psi^{Rec-A}_0}$ [rad]', fontsize = 12)
 	plt.ylim(bottom = 0, top = 2 * std.loc['pt1'].sigma_gen.max())
 	plt.legend()
-	plt.savefig(filepath +  f'//model{file_num}_gen_stratsigmas.png')
+	#plt.savefig(filepath +  f'//model{file_num}_gen_stratsigmas.png')
     
 	plt.figure(5)
 	ax = plt.figure(5).gca()
@@ -168,38 +172,52 @@ def tester(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.plot(groupLabels, std.loc['pt5'].sigma_truth, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
 	plt.errorbar(groupLabels, std.loc['pt5'].sigma_truth, yerr=sem.loc['pt5'].sigma_truth, fmt = 'ks')
 	plt.grid(axis = 'x')
-    #plt.title('Truth Resolution')
+	#plt.title('Truth Resolution')
 	plt.xlabel(r'$\rm N_{\rm neutrons}$', fontsize = 12)
 	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Truth-A}_0-\Psi^{Rec-A}_0}$ [rad]')
 	plt.ylim(bottom = 0, top = 2*std.loc['pt1'].sigma_truth.max())
 	plt.legend()
-	plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
+	#plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
 
 	plt.show()
 
+def comTester():
+	centerX = 0
+	centerY = -0.471659
+
+	A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = '//A')
+	A = A.drop_duplicates()
+	print(A)
+
+	rpdSignals = A.iloc[:,8:24]
+	testEvent = randint(0, len(rpdSignals))
+	rpd = rpdSignals.iloc[testEvent:testEvent+1]
+	com = findCOM(rpd)
+	print(com)
+	
+
 def regular_model():
 	centerX = 0
-	centerY = 0
+	centerY = -0.471659
 	model_num = 20
 	model_loss = 'CoM'
 	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
 
 	A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = '//A')
 	A = A.drop_duplicates()
-	A_sub = process.subtract_signals(A)
 
-	rpdSignals = A_sub.iloc[:,8:24]
+	rpdSignals = A.iloc[:,8:24]
 	com = findCOM(rpdSignals)
 
 	print(com)
-	input()
-	os.mkdir(filepath)
+	#input()
+	#os.mkdir(filepath)
 
-	psi_rec = np.arctan2(com.iloc[:,1],com.iloc[:,0]+0.471659)
-	psi_gen = np.arctan2(A_sub.iloc[:,1],A_sub.iloc[:,0])
-	psi_truth = A_sub.iloc[:,5]
+	comPhi = getCOMReactionPlane(com, centerX, centerY)
+	psi_gen = np.arctan2(A.iloc[:,1],A.iloc[:,0])
+	psi_truth = A.iloc[:,5]
 
-	tester(A, filepath, model_num, psi_gen, psi_truth, psi_rec)
+	plotHistograms(A, filepath, model_num, psi_gen, psi_truth, comPhi)
 
 def linear_model():
 	train_size = 0.65
@@ -294,7 +312,7 @@ def linear_model():
 	psi_gen = np.arctan2(Q_avg.iloc[:,1],Q_avg.iloc[:,0])
 	psi_truth = test_A.iloc[:,5]
 
-	tester(test_A,filepath,model_num,psi_gen,psi_truth,psi_rec)
+	plotHistograms(test_A,filepath,model_num,psi_gen,psi_truth,psi_rec)
 
 def com_modeler():
 	run_type = 1
