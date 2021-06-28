@@ -1,3 +1,4 @@
+from operator import truth
 import os
 import sys
 import math
@@ -28,11 +29,39 @@ def get_model():
 	])
 	return model
 
-def fit_function(x, A, B, mu, sigma):
-	return A+B*np.exp(-(x-mu)**2/(2*sigma**2))
+def fit_function(x, B, mu, sigma):
+	return B*np.exp(-1*((x-mu)**2/(2*sigma**2)))
+	
+def fit_function2(x, A, B, mu, sigma):
+	return A + B*np.exp(-1*((x-mu)**2/(2*sigma**2)))
+
+def get_sigmas(df, ptLabels, groupLabels):
+	bins = 50
+	
+	sem = pd.DataFrame(0, index = pd.MultiIndex.from_product([ptLabels,groupLabels], names = ['ptBins','nbins']), columns = ['sigma_gen','sigma_truth'])
+	std = pd.DataFrame(0, index = pd.MultiIndex.from_product([ptLabels,groupLabels], names = ['ptBins','nbins']), columns = ['sigma_gen','sigma_truth'])
+	for pt in ptLabels:
+		for nCount in groupLabels:
+			testdf = df.loc[(df['ptBins'] == pt) & (df['nbins'] == nCount)]
+
+			mean_test_gen, sigma_test_gen = norm.fit(testdf.psi_gen)
+			testBins_gen = np.linspace(mean_test_gen-sigma_test_gen, mean_test_gen+sigma_test_gen, bins+1)
+			genEntries, bins_1 = np.histogram(testdf.psi_gen, bins = testBins_gen, density = False)
+			genCenters = np.array([0.5*(testBins_gen[i]+testBins_gen[i+1]) for i in range (len(testBins_gen)-1)])
+			genPopt, genPcov = curve_fit(fit_function, xdata = genCenters, ydata = genEntries, p0 = [75000, mean_test_gen, sigma_test_gen])
+
+			mean_test_truth, sigma_test_truth = norm.fit(testdf.psi_truth)
+			testBins_truth = np.linspace(mean_test_truth-sigma_test_truth, mean_test_truth+sigma_test_truth, bins+1)
+			truthEntries, bins_2 = np.histogram(testdf.psi_truth, bins = testBins_truth, density = False)
+			truthCenters = np.array([0.5*(testBins_truth[i]+testBins_truth[i+1]) for i in range (len(testBins_truth)-1)])
+			truthPopt, truthPcov = curve_fit(fit_function, xdata = truthCenters, ydata = truthEntries, p0 = [75000, mean_test_truth, sigma_test_truth])
+			std.loc[(pt,nCount)] += [np.abs(genPopt[-1]), np.abs(truthPopt[-1])]
+			sem.loc[(pt,nCount)] += [np.sqrt(np.diag(genPcov))[-1], np.sqrt(np.diag(truthPcov))[-1]]
+
+	return std, sem
 
 def findCOM (rpd):
-	print(rpd)
+	#print(rpd)
 	com = pd.DataFrame(0, index = rpd.index, columns = ['comX', 'comY'])
 	#input()
 	totalSignal = rpd.sum(axis = 1)
@@ -48,7 +77,7 @@ def findCOM (rpd):
 		if ch%4 == 0: x = 1.5
 		elif ch%4 == 1: x = 0.5
 		elif ch%4 == 2: x = -0.5
-		elif ch&4 == 3: x = -1.5
+		elif ch%4 == 3: x = -1.5
 
 		com.comX += x*rpd.iloc[:,ch]
 		com.comY += y*rpd.iloc[:,ch]
@@ -75,66 +104,75 @@ def plotHistograms(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	psi_truth_rec[psi_truth_rec > np.pi] = -2*np.pi + psi_truth_rec
 	psi_truth_rec[psi_truth_rec < -np.pi] = 2*np.pi + psi_truth_rec
 	print('Event	psi_truth   psi_gen   psi_reco   psi_truth-reco   psi_gen-reco')
+	'''
 	for i in range(10):
 		print(f'Event {i}: {psi_truth.loc[i]}   {psi_gen.loc[i]}   {psi_rec.loc[i]}   {psi_truth_rec.loc[i]}   {psi_gen_rec.loc[i]}')
+	'''
+	df = pd.DataFrame()
+	df['numParticles'] = numParticles
+	df['pt_nuclear'] = pt_nuc.multiply(1000)
+	df['psi_gen'] = psi_gen_rec
+	df['psi_truth'] = psi_truth_rec
+	
+	#stratifies based on pt_nuclear
+	ptLabels = ['pt1', 'pt2', 'pt3', 'pt4', 'pt5']
+	df['ptBins'] = pd.cut(x = df.iloc[:,1], bins = [5, 15, 25, 35, 45, np.inf], labels = ptLabels, right = False, include_lowest = True)
+	#creates bins for neutron clusters. For future reference, do not do this in python
+	groupLabels = [22, 27, 32, 37]
+	df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
 
+	measuredDf = df
+	
 	#collects summary stats for difference in angle
-	mean_gen, sigma_gen = norm.fit(psi_gen_rec)
-	error_gen = psi_gen_rec.sem()
+	mean_gen, sigma_gen = norm.fit(measuredDf.psi_gen)
+	error_gen = measuredDf.psi_gen.sem()
 
-	mean_truth, sigma_truth = norm.fit(psi_truth_rec)
-	error_truth = np.round(psi_truth_rec.sem(), 3)
+	mean_truth, sigma_truth = norm.fit(measuredDf.psi_truth)
+	error_truth = np.round(measuredDf.psi_truth.sem(), 3)
 
-	genBins = np.linspace(psi_gen_rec.min(), psi_gen_rec.max(), bins+1)
+	genBins = np.linspace(mean_gen-sigma_gen, mean_gen+sigma_gen, bins + 1)
+	genBins2 = np.linspace(measuredDf.psi_gen.min(), measuredDf.psi_gen.max(), bins + 1)
+	genEntries, bins_1 = np.histogram(measuredDf.psi_gen, bins = genBins, density = False)
+	genEntries2, bins_2 = np.histogram(measuredDf.psi_gen, bins = genBins2, density = False)
 	genCenters = np.array([0.5*(genBins[i]+genBins[i+1]) for i in range(len(genBins)-1)])
-	genEntries, bins1 = np.histogram(psi_gen_rec, bins = bins, density = False)
-	genPopt,genPcov = curve_fit(fit_function, genCenters, genEntries, p0=[40000, 60000, genEntries.mean(), genEntries.std()])
-	print(genPopt)
-	genXspace = np.linspace(mean_gen-sigma_gen, mean_gen+sigma_gen, 100000)
+	genCenters2 = np.array([0.5*(genBins2[i]+genBins2[i+1]) for i in range(len(genBins2)-1)])
+	genPopt, genPcov = curve_fit(fit_function, xdata = genCenters, ydata = genEntries, p0 = [75000, mean_gen, sigma_gen])
+	genPopt2, genPcov2 = curve_fit(fit_function2, xdata = genCenters2, ydata = genEntries2, p0 = [60000, 75000, mean_gen, sigma_gen])
+	genXspace = np.linspace(mean_gen-sigma_gen, mean_gen+sigma_gen, 1000000)
 
-	truthBins = np.linspace(psi_truth_rec.min(), psi_truth_rec.max(), bins+1)
-	truthCenters = np.array([0.5*(truthBins[i]+truthBins[i+1]) for i in range (len(truthBins)-1)])
-	truthEntries, bins2 = np.histogram(psi_truth_rec, bins = bins, density = False)
-	truthPopt, truthPcov = curve_fit(fit_function, truthCenters, truthEntries, p0=[40000, 40000, truthEntries.mean(), truthEntries.std()])
-	print(truthPopt)
-	truthXspace = np.linspace(mean_truth - sigma_truth, mean_truth + sigma_truth, 100000)
+	truthBins = np.linspace(mean_truth-sigma_truth, mean_truth+sigma_truth, bins + 1)
+	truthBins2 = np.linspace(measuredDf.psi_truth.min(), measuredDf.psi_truth.max(), bins + 1)
+	truthEntries, bins_3 = np.histogram(measuredDf.psi_truth, bins = truthBins, density = False)
+	truthEntries2, bins_4 = np.histogram(measuredDf.psi_truth, bins = truthBins2, density = False)
+	truthCenters = np.array([0.5*(truthBins[i]+truthBins[i+1]) for i in range(len(truthBins)-1)])
+	truthCenters2 = np.array([0.5*(truthBins2[i]+truthBins2[i+1]) for i in range(len(truthBins2)-1)])
+	truthPopt, truthPcov = curve_fit(fit_function, xdata = truthCenters, ydata = truthEntries, p0 = [75000, mean_truth, sigma_truth])
+	truthPopt2, truthPcov2 = curve_fit(fit_function2, xdata = truthCenters2, ydata = truthEntries2, p0 = [60000, 75000, mean_truth, sigma_truth])
+	truthXspace = np.linspace(mean_truth-sigma_truth, mean_truth+sigma_truth, 1000000)
 
 	#plots difference in angle
 	plt.figure(2)
-	plt.hist(psi_gen_rec, bins = bins, density = False)
-	plt.plot(genXspace, fit_function(genXspace,*genPopt))
+	plt.hist(measuredDf.psi_gen, bins = bins, density = False)
+	plt.plot(genXspace, fit_function2(genXspace, *genPopt2))
 	plt.ylim(bottom = 0)
 	#plt.title(r'$\Psi_{\rm Gen}-\Psi_{\rm Recon}$')
 	plt.xlabel(r'$\Psi_0^{\rm Gen-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,300000,f'$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(sigma_gen, 3)}$')
+	plt.text(-3,40000,f"$\\mu={np.round(mean_gen, 3)}\\pm {np.round(error_gen,3)}$,\n $\\sigma={np.round(genPopt[-1],3)}$")
 	#plt.savefig(filepath + f'//model{file_num}_gen_anglediff.png')
 
 	plt.figure(3)
-	plt.hist(psi_truth_rec, bins = bins, density = False)
-	plt.plot(truthXspace, fit_function(truthXspace, *truthPopt))
+	plt.hist(measuredDf.psi_truth, bins = bins, density = False)
+	plt.plot(truthXspace, fit_function2(truthXspace,*truthPopt2))
 	#plt.title(r'$\Psi_0^{\rm True-A}-\Psi_{\rm Rec-A}$')
 	plt.xlabel(r'$\Psi_0^{\rm True-A}-\Psi_0^{\rm Rec-A}$ [rad]', fontsize = 12)
 	plt.ylabel('Density Function', fontsize = 12)
-	plt.text(-3,30000,f'$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(sigma_truth, 3)}$')
+	plt.text(-3,30000,f"$\\mu={np.round(mean_truth, 3)}\\pm {np.round(error_truth,3)}$,\n $\\sigma={np.round(truthPopt[-1], 3)}$")
 	#plt.savefig(filepath + f'//model{file_num}_truth_anglediff.png')
 
-	df = pd.DataFrame()
-	df['numParticles'] = numParticles
-	df['pt_nuclear'] = pt_nuc.multiply(1000)
-	df['sigma_gen'] = psi_gen_rec
-	df['sigma_truth'] = psi_truth_rec
-	
-	#stratifies based on pt_nuclear
-	df['ptBins'] = pd.cut(x = df.iloc[:,1], bins = [5, 15, 25, 35, 45, np.inf], labels = ['pt1', 'pt2', 'pt3', 'pt4', 'pt5'], right = False, include_lowest = True)
-	#creates bins for neutron clusters. For future reference, do not do this in python
-	groupLabels = [20, 25, 30, 35]
-	df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
 	print(df)
-	
-	std = df.groupby(['ptBins','nbins']).std()
-	sem = df.groupby(['ptBins','nbins']).sem()
-	print(std)
+
+	std, sem = get_sigmas(df, ptLabels, groupLabels)
 	print(sem)
 	
 	plt.figure(4)
@@ -150,13 +188,14 @@ def plotHistograms(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.errorbar(groupLabels, std.loc['pt4'].sigma_gen, yerr=sem.loc['pt4'].sigma_gen, fmt = 'ms')
 	plt.plot(groupLabels, std.loc['pt5'].sigma_gen, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
 	plt.errorbar(groupLabels, std.loc['pt5'].sigma_gen, yerr=sem.loc['pt5'].sigma_gen, fmt = 'ks')
-	plt.grid(axis = 'x')
+	plt.grid()
 	#plt.title('Gen Resolution', fontsize = 12)
 	plt.xlabel(r'$\rm N_{neutrons}$', fontsize = 12)
 	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Gen-A}_0-\Psi^{Rec-A}_0}$ [rad]', fontsize = 12)
-	plt.ylim(bottom = 0, top = 2 * std.loc['pt1'].sigma_gen.max())
+	plt.xlim(left = 20, right = 40)
+	plt.ylim(bottom = 0, top = 3)
 	plt.legend()
-	#plt.savefig(filepath +  f'//model{file_num}_gen_stratsigmas.png')
+	plt.savefig(filepath +  f'//model{file_num}_gen_stratsigmas.png')
     
 	plt.figure(5)
 	ax = plt.figure(5).gca()
@@ -171,13 +210,14 @@ def plotHistograms(A, filepath, file_num, psi_gen, psi_truth, psi_rec):
 	plt.errorbar(groupLabels, std.loc['pt4'].sigma_truth, yerr=sem.loc['pt4'].sigma_truth, fmt = 'ms')
 	plt.plot(groupLabels, std.loc['pt5'].sigma_truth, 'ks', label = r'$45\leq p_T^{nuclear}$ MeV')
 	plt.errorbar(groupLabels, std.loc['pt5'].sigma_truth, yerr=sem.loc['pt5'].sigma_truth, fmt = 'ks')
-	plt.grid(axis = 'x')
+	plt.grid()
 	#plt.title('Truth Resolution')
 	plt.xlabel(r'$\rm N_{\rm neutrons}$', fontsize = 12)
 	plt.ylabel(r'$\sigma_{\rm \Psi^{\rm Truth-A}_0-\Psi^{Rec-A}_0}$ [rad]')
-	plt.ylim(bottom = 0, top = 2*std.loc['pt1'].sigma_truth.max())
+	plt.xlim(left = 20, right = 40)
+	plt.ylim(bottom = 0, top = 6)
 	plt.legend()
-	#plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
+	plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
 
 	plt.show()
 
@@ -196,10 +236,10 @@ def comTester():
 	print(com)
 	
 
-def regular_model():
+def directCOMComparison():
 	centerX = 0
 	centerY = -0.471659
-	model_num = 20
+	model_num = 1
 	model_loss = 'CoM'
 	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
 
@@ -220,22 +260,25 @@ def regular_model():
 	plotHistograms(A, filepath, model_num, psi_gen, psi_truth, comPhi)
 
 def linear_model():
-	train_size = 0.65
-	model_num = 21
+	train_size = 0.8
+	model_num = 5
 	model_loss = 'mse'
 	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
 	random_state = 42
 
 	A = io.get_dataset(folder = "C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles", side = '//A')
 	A = A.drop_duplicates()
-	A_sub = process.subtract_signals(A)
+	com = findCOM(A.iloc[:,8:24])
+	A = pd.concat([A, com], axis = 1)
+	print(A)
+	input()
 
-	train_A, tmpA = train_test_split(A_sub, train_size = train_size, random_state = random_state)
-	val_A, test_A = train_test_split(A_sub, train_size = train_size, random_state = random_state)
+	train_A, tmpA = train_test_split(A, train_size = train_size, random_state = random_state)
+	val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
 
-	train_X = train_A.iloc[:,2:4]
+	train_X = train_A.iloc[:,24:26]
 	train_y = train_A.iloc[:,0:2]
-	val_X = val_A.iloc[:,2:4]
+	val_X = val_A.iloc[:,24:26]
 	val_y = val_A.iloc[:,0:2]
 
 	print('Training Data:')
@@ -278,7 +321,7 @@ def linear_model():
 
 	f = open(filepath + f'//linear_{model_num}.txt', 'w')
 	f.write('Difference: Trained with CoM')
-	f.write('\nval_loss:' + str(val_mse))
+	f.write('\nval_loss:' + str(np.min(val_mse)))
 	weights = model.layers[-1].get_weights()
 	f.write('\n' + str(weights))
 	f.close()
@@ -305,7 +348,7 @@ def linear_model():
 	print('val loss:', np.min(val_mse))
 
 	Q_avg = test_A.iloc[:,0:2]
-	test_X = test_A.iloc[:,2:4]
+	test_X = findCOM(test_A.iloc[:,8:24])
 	Q_predicted = model.predict([test_X.astype('float')])
 
 	psi_rec = np.arctan2(Q_predicted[:,1],Q_predicted[:,0])
@@ -319,7 +362,7 @@ def com_modeler():
 	#If 1, run direct model
 	#If 2, run linear regression model
 	if run_type == 1:
-		regular_model()
+		directCOMComparison()
 	elif run_type == 2:
 		linear_model()
 

@@ -1,5 +1,7 @@
 import os
 import sys
+
+from tensorflow.python.keras.engine.input_layer import InputLayer
 sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
 
 
@@ -11,19 +13,26 @@ import reco.lib.io as io
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers
+from tensorflow.keras.layers.experimental.preprocessing import Normalization
 
 import numpy as np
 import pandas as pd
 import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 
-def get_model():
-    #linear model, 8 input averages -> 2 positional coordinates
+def get_model(normalizer):
+    #linear model, 16 channels -> 2 positional coordinates
     model = keras.Sequential([
-        layers.BatchNormalization(input_shape = [8]),
+        layers.InputLayer(input_shape=[16]),
+        normalizer,
         layers.Dense(units=2, activation = 'linear')
     ])
     return model
+
+def get_normalizer(data):
+    normalizer = Normalization(axis = None)
+    normalizer.adapt(data)
+    return normalizer
 
 def get_averages(data):
     print(data.head(5))
@@ -40,16 +49,12 @@ def get_averages(data):
         temp = temp.divide(4)
         data[f'colAvg_{column}']=temp
     print(data.head(5))
-    print('Continue?')
-    x = input()
-    if not (x == 'y' or x == 'yes'):
-        exit()
     return data
             
 
 def train_linear():
-    train_size = 0.65
-    model_num = 19
+    train_size = 0.8
+    model_num = 5
     model_loss = 'mse'
     filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{model_num}_{model_loss}"
     random_state = 42
@@ -60,11 +65,10 @@ def train_linear():
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
-    A_sub = process.subtract_signals(A)
-    #A_sub = get_averages(A_sub)
+    #A = get_averages(A)
     #using state 42 for verification purposes
-    train_A, tmpA = train_test_split(A_sub, train_size = train_size, random_state = random_state)
-    val_A, test_A = train_test_split(tmpA, train_size = train_size, random_state = random_state)
+    train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
+    val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
 
     print("Saving Data Set")
     os.mkdir(filepath)
@@ -74,9 +78,9 @@ def train_linear():
     test_y.to_pickle(filepath + '//test_y.pickle')
     test_psi.to_pickle(filepath + '//psi_truth.pickle')
     '''
-    train_X = train_A.iloc[:,24:32]
+    train_X = train_A.iloc[:,8:24]
     train_y = train_A.iloc[:,0:2]
-    val_X = val_A.iloc[:,24:32]
+    val_X = val_A.iloc[:, 8:24]
     val_y = val_A.iloc[:,0:2]
     
     #sanity check
@@ -86,19 +90,19 @@ def train_linear():
     print('Validation Data:\n')
     print(val_X.head())
     print(val_y.head())
-    input()
 
-    model = get_model()
+    normalizer = get_normalizer(train_X)
+    model = get_model(normalizer)
     print("Model Received.")
     model.summary()
-    model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse', 'msle'])
-    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 15, monitor='val_loss', restore_best_weights = True)
+    model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse','msle'])
+    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 25, monitor='val_loss', restore_best_weights = True)
 
     print("Starting training:")
     history = model.fit(
         train_X, train_y,
         validation_data = (val_X, val_y),
-        batch_size = 1024,
+        batch_size = 512,
         epochs = 500,
         callbacks=[early_stopping],
         verbose=1
@@ -115,8 +119,8 @@ def train_linear():
     val_msle = history.history['msle']
 
     f = open(filepath + f'//linear_{model_num}.txt', 'w')
-    f.write('Difference: Reduced averages by two orders of magnitude.')
-    f.write('\nval_loss:' + str(val_mse))
+    f.write('Difference: Channel averages linear model')
+    f.write('\nval_loss:' + str(np.min(val_mse)))
     weights = model.layers[-1].get_weights()
     f.write('\n' + str(weights))
     f.close()
@@ -150,6 +154,7 @@ def train_linear():
     plt.legend()
     plt.savefig(filepath + f'//model{model_num}_msle_{model_loss}Loss.png')
     '''
+    print('loss: ', np.min(train_mse))
     print('val loss:', np.min(val_mse))
 
 
