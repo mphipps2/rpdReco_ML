@@ -1,5 +1,5 @@
 import sys
-sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
+sys.path.append('/home/aryan/Documents/rpdreco/')
 
 #import reco.lib.norm as norm
 import reco.lib.models as models
@@ -42,8 +42,8 @@ def GaussianFitGet(h1, idx):
 def PlotRootDistributions(dataTree):
 	gROOT.SetStyle('ATLAS')
 
-	dataTree.Draw('psi_gen_rec>>hGen','goff')
-	dataTree.Draw('psi_truth_rec>>hTruth','goff')
+	dataTree.Draw('psi_gen_rec>>hGen')
+	dataTree.Draw('psi_truth_rec>>hTruth')
 	hGen = gDirectory.Get('hGen')
 	hGen.SetLineColor(kBlue)
 	hGen.SetFillColor(kBlue)
@@ -51,10 +51,12 @@ def PlotRootDistributions(dataTree):
 	hTruth.SetFillColor(kBlue)
 	hTruth.SetLineColor(kBlue)
 
-	hGen.GetXaxis().SetTitle('\Psi_{0}^{\text{Gen-A}}-\Psi_{0}^{\text{Rec-A}}\text{[rad]}')
+	hGen.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
 	hGen.GetYaxis().SetTitle('Counts')
-	hGen.GetXaxis().SetTitle('\Psi_{0}^{\text{Truth-A}}-\Psi_{0}^{\text{Rec-A}}\text{[rad]}')
+	hGen.GetYaxis().SetTitleOffset(1.7)
+	hTruth.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
 	hTruth.GetYaxis().SetTitle('Counts')
+	hTruth.GetYaxis().SetTitleOffset(1.7)
 
 	hGen = GaussianFit(hGen)
 	hTruth = GaussianFit(hTruth)
@@ -74,7 +76,7 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 	ey_truth =array('f',[])
 
 	n = len(groupLabels)
-	colors = [kBlue, kCyan, kSpring, kOrange, kRed]
+	colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
 
 	for i in range(len(ptLabels)):
 		for j in range(len(groupLabels)):
@@ -83,22 +85,25 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 			ex.append(0)
 			lowPt = float(i*10 + 5)
 			highPt = float(i*10 + 15)
-			lowerNeutronCut = TCut(f'numParticles >= {nBin-3}')
-			upperNeutronCut = TCut(f'numParticles < {nBin+2}')
+			lowerNeutronCut = TCut(f'numParticles >= {nBin-2}')
+			upperNeutronCut = TCut(f'numParticles < {nBin+3}')
 			lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
 			if highPt <= 45:
 				upperPtCut = TCut(f'pt_nuclear < {highPt}')
 			else:
 				upperPtCut = TCut('pt_nuclear < 100000')
 			cut = lowerNeutronCut + upperNeutronCut + lowerPtCut + upperPtCut
-			dataTree.Draw('psi_gen_rec >> genTemp', cut, 'goff')
-			dataTree.Draw('psi_truth_rec >> truthTemp', cut, 'goff')
+			#input()
+			dataTree.Draw('psi_gen_rec >> genTemp', cut)
+			dataTree.Draw('psi_truth_rec >> truthTemp', cut)
 			
 			genTemp = gDirectory.Get('genTemp')
 			truthTemp = gDirectory.Get('truthTemp')
+			genTemp.Draw()
 
 			genSigma, genError = GaussianFitGet(genTemp,parameter)
 			truthSigma, truthError = GaussianFitGet(truthTemp, parameter)
+			print(genSigma, truthSigma)
 
 			y_gen.append(genSigma)
 			ey_gen.append(genError)
@@ -109,14 +114,15 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 	truthGraph = TMultiGraph()
 	for i in range(len(ptLabels)):
 		color = colors[i]
-		tge_gen = TGraphErrors(n, x[i*4:i*4+4], ex[i*4:i*4+4], y_gen[i*4:i*4+4],ey_gen[i*4:i*4+4])
+		tge_gen = TGraphErrors(n, x[i*4:i*4+4], y_gen[i*4:i*4+4], ex[i*4:i*4+4],ey_gen[i*4:i*4+4])
 		tge_gen.SetDrawOption('AP')
-		tge_truth = TGraphErrors(n, x[i*4:i*4+4], ex[i*4:i*4+4], y_truth[i*4:i*4+4],ey_truth[i*4:i*4+4])
+		tge_truth = TGraphErrors(n, x[i*4:i*4+4], y_truth[i*4:i*4+4], ex[i*4:i*4+4],ey_truth[i*4:i*4+4])
 		tge_truth.SetDrawOption('AP')
 
 		lowPt = i*10 + 5
 		highPt = i*10 + 15
 		tge_gen.SetMarkerColor(color)
+		tge_truth.SetMarkerColor(color)
 		if highPt < 55:
 			tge_gen.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
 			tge_truth.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
@@ -124,15 +130,18 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 			tge_gen.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
 			tge_truth.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
 		tge_gen.SetLineColor(color)
+		tge_truth.SetLineColor(color)
 		genGraph.Add(tge_gen)
 		truthGraph.Add(tge_truth)
 	
-	genGraph.SetTitle('','\text{N}_{\text{neutrons}}','\sigma_{\Psi_{0}^{\text{Gen-A}}-\Psi_{0}^{\text{Rec-A}}}\text{[rad]}')
+	genGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
 	genGraph.GetXaxis().SetLimits(20.,40.)
-	genGraph.GetYaxis().SetLimits(genGraph.GetYaxis().GetXmin()*0.9, genGraph.GetYaxis().GetXmax()*1.1)
-	truthGraph.SetTitle('','\text{N}_{\text{neutrons}}','\sigma_{\Psi_{0}^{\text{Truth-A}}-\Psi_{0}^{\text{Rec-A}}}\text{[rad]}')
+	genGraph.GetYaxis().SetRangeUser(0, 1.4)
+	genGraph.GetYaxis().SetLimits(0,1.4)
+	truthGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
 	truthGraph.GetXaxis().SetLimits(20.,40.)
-	truthGraph.GetYaxis().SetLimits(truthGraph.GetYaxis().GetXmin()*0.9, truthGraph.GetYaxis().GetXmax()*1.1)
+	truthGraph.GetYaxis().SetRangeUser(0,2.6)
+	truthGraph.GetYaxis().SetLimits(0,2.6)
 
 	return genGraph, truthGraph
 
@@ -323,26 +332,26 @@ def MplPlot():
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 5
+	file_num = 2
 	filepath = f"/home/aryan/Documents/models/model_{file_num}_{model_loss}/"
 	bins = 100
 
 	#loads datasets
 	test_A = pd.read_pickle(filepath + 'test_A.pickle')
 	#set test_x based on model: 8:24 for allchan, 24:32 for avg, 24:26 for CoM
-	test_X = test_A.iloc[:,8:24]
+	test_X = test_A.iloc[:,24:32]
 	Q_avg = test_A.iloc[:,0:2]
 	psi_truth = test_A.iloc[:,5]
-	pt_nuc = test_A.iloc[:,4]
+	pt_nuc = test_A.iloc[:,4].multiply(1000)
 	numParticles = test_A.iloc[:,7]
-
+	
 	model = keras.models.load_model(filepath+f'linear_{file_num}_{model_loss}.h5',compile = False)
 	Q_predicted = model.predict([test_X.astype('float')])
-
+	
 	f = open(filepath + f'linear_{file_num}_{model_loss}_summary.txt', 'w')
 	model.summary(print_fn = lambda x: f.write(x+'\n'))
 	f.close()
-
+	
 	psi_rec = np.arctan2(Q_predicted[:,1],Q_predicted[:,0])
 	psi_gen = np.arctan2(Q_avg.iloc[:,1],Q_avg.iloc[:,0])
 
@@ -385,9 +394,13 @@ def RootPlot():
 	nTruth.Draw('AP')
 	c4.BuildLegend()
 
+	c1.cd()
 	c1.SaveAs(filepath + 'genDistribution.png')
+	c2.cd()
 	c2.SaveAs(filepath + 'truthDistribution.png')
+	c3.cd()
 	c3.SaveAs(filepath + 'genNeutronDependence.png')
+	c4.cd()
 	c4.SaveAs(filepath + 'truthNeutronDependence.png')
 	
 

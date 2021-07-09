@@ -2,7 +2,7 @@ import os
 import sys
 
 from tensorflow.python.keras.engine.input_layer import InputLayer
-sys.path.append('C://Users//Fre Shava Cado//Documents//VSCode Projects//rpdreco//')
+sys.path.append('/home/aryan/Documents/rpdreco/')
 
 
 import reco.lib.norm as norm
@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 def get_model(normalizer):
     #linear model, 16 channels -> 2 positional coordinates
     model = keras.Sequential([
-        layers.InputLayer(input_shape=[16]),
+        layers.InputLayer(input_shape=[8]),
         normalizer,
         layers.Dense(units=2, activation = 'linear')
     ])
@@ -97,30 +97,30 @@ def directCOMComparison():
 
     print(com)
     #input()
-    #os.mkdir(filepath)
+    os.mkdir(filepath)
 
     comPhi = getCOMReactionPlane(com, centerX, centerY)
-    A = pd.concat([A,comPhi],axis = 1)
+    A['ComPhi'] = comPhi
     someA, tmpA = train_test_split(A, train_size = 0.8, random_state = 42)
     someA2, testA = train_test_split(tmpA, train_size = 0.5, random_state = 42)
-    testA.to_pickle(filepath + 'testA.pickle')
+    testA.to_pickle(filepath + 'test_A.pickle')
 
 
 def train_linear():
     train_size = 0.8
-    model_num = 5
+    model_num = 2
     model_loss = 'mse'
     filepath = f"/home/aryan/Documents/models/model_{model_num}_{model_loss}/"
     random_state = 42
 
     print("Getting Dataset...")
 
-    A = io.get_dataset(folder = "/home/aryan/Documents/Data/", side = 'A')
+    A = io.get_dataset(folder = "/home/aryan/Documents/data/", side = 'A')
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
-    #A = pd.concat([A,find_COM(A.iloc[:,8:24])],axis = 1)
-    #A = get_averages(A)
+    #A = pd.concat([A,findCOM(A.iloc[:,8:24])],axis = 1)
+    A = get_averages(A)
     #using state 42 for verification purposes
     train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
@@ -133,9 +133,9 @@ def train_linear():
     test_y.to_pickle(filepath + 'test_y.pickle')
     test_psi.to_pickle(filepath + 'psi_truth.pickle')
     '''
-    train_X = train_A.iloc[:,8:24]
+    train_X = train_A.iloc[:,24:32]
     train_y = train_A.iloc[:,0:2]
-    val_X = val_A.iloc[:, 8:24]
+    val_X = val_A.iloc[:, 24:32]
     val_y = val_A.iloc[:,0:2]
     
     #sanity check
@@ -151,7 +151,7 @@ def train_linear():
     print("Model Received.")
     model.summary()
     model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse','msle'])
-    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 25, monitor='val_loss', restore_best_weights = True)
+    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 10, monitor='val_loss', restore_best_weights = True)
 
     print("Starting training:")
     history = model.fit(
