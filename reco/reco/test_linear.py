@@ -351,7 +351,7 @@ def RootPlot():
 	model = keras.models.load_model(filepath+f'linear_{file_num}_{model_loss}.h5',compile = False)
 	Q_predicted = model.predict([test_X.astype('float')])
 	
-	f = open(filepath + f'_unsubtracted/linear_{file_num}_{model_loss}_summary.txt', 'w')
+	f = open(filepath + f'linear_{file_num}_{model_loss}_summary.txt', 'w')
 	model.summary(print_fn = lambda x: f.write(x+'\n'))
 	f.close()
 	
@@ -406,12 +406,16 @@ def RootPlot():
 		l1.DrawLine(25 + i*5, nTruth.GetYaxis().GetXmin(),25+i*5, nTruth.GetYaxis().GetXmax())
 
 	c1.cd()
+	c1.SetFillColor(kWhite)
 	c1.SaveAs(filepath + 'genDistribution.png')
 	c2.cd()
+	c2.SetFillColor(kWhite)
 	c2.SaveAs(filepath + 'truthDistribution.png')
 	c3.cd()
+	c3.SetFillColor(kWhite)
 	c3.SaveAs(filepath + 'genNeutronDependence.png')
 	c4.cd()
+	c4.SetFillColor(kWhite)
 	c4.SaveAs(filepath + 'truthNeutronDependence.png')
 	
 
