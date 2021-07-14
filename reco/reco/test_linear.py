@@ -1,5 +1,7 @@
 import sys
-sys.path.append('/home/aryan/Documents/rpdreco/')
+
+from tensorflow.python.ops.control_flow_ops import group
+sys.path.append('/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/rpdreco/reco')
 
 #import reco.lib.norm as norm
 import reco.lib.models as models
@@ -131,18 +133,19 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 			tge_truth.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
 		tge_gen.SetLineColor(color)
 		tge_truth.SetLineColor(color)
+		tge_gen.SetMarkerStyle(21)
+		tge_truth.SetMarkerStyle(21)
 		genGraph.Add(tge_gen)
 		truthGraph.Add(tge_truth)
 	
 	genGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
-	genGraph.GetXaxis().SetLimits(20.,40.)
-	genGraph.GetYaxis().SetRangeUser(0, 1.4)
-	genGraph.GetYaxis().SetLimits(0,1.4)
 	truthGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
+	genGraph.GetXaxis().SetLimits(20.,40.)
+	genGraph.GetYaxis().SetRangeUser(0,6)
+	genGraph.GetYaxis().SetLimits(0,6)
 	truthGraph.GetXaxis().SetLimits(20.,40.)
-	truthGraph.GetYaxis().SetRangeUser(0,2.6)
-	truthGraph.GetYaxis().SetLimits(0,2.6)
-
+	truthGraph.GetYaxis().SetRangeUser(0,8)
+	truthGraph.GetYaxis().SetLimits(0,8)
 	return genGraph, truthGraph
 
 def PlotMplDistributions(measuredDf, filepath, file_num, df, groupLabels, ptLabels):
@@ -271,7 +274,7 @@ def PlotMplNeutronDependence(std, sem, groupLabels, filepath, file_num):
 def MplPlot():
 	model_loss = 'mse'
 	file_num = 5
-	filepath = f"C://Users//Fre Shava Cado//Documents//VSCode Projects//SaveFiles//model_{file_num}_{model_loss}"
+	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}"
 	bins = 100
 
 	#loads datasets
@@ -332,14 +335,14 @@ def MplPlot():
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 2
-	filepath = f"/home/aryan/Documents/models/model_{file_num}_{model_loss}/"
+	file_num = 1
+	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}/"
 	bins = 100
 
 	#loads datasets
 	test_A = pd.read_pickle(filepath + 'test_A.pickle')
 	#set test_x based on model: 8:24 for allchan, 24:32 for avg, 24:26 for CoM
-	test_X = test_A.iloc[:,24:32]
+	test_X = test_A.iloc[:,24:26]
 	Q_avg = test_A.iloc[:,0:2]
 	psi_truth = test_A.iloc[:,5]
 	pt_nuc = test_A.iloc[:,4].multiply(1000)
@@ -348,7 +351,7 @@ def RootPlot():
 	model = keras.models.load_model(filepath+f'linear_{file_num}_{model_loss}.h5',compile = False)
 	Q_predicted = model.predict([test_X.astype('float')])
 	
-	f = open(filepath + f'linear_{file_num}_{model_loss}_summary.txt', 'w')
+	f = open(filepath + f'_unsubtracted/linear_{file_num}_{model_loss}_summary.txt', 'w')
 	model.summary(print_fn = lambda x: f.write(x+'\n'))
 	f.close()
 	
@@ -376,12 +379,16 @@ def RootPlot():
 	ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
 	nGen, nTruth = PlotRootNeutronDependence(treeA, groupLabels, ptLabels, 2)
 
-	w = 600
+	w = 750
 	h = 600
 	c1 = TCanvas('c1','c1', w, h)
 	c2 = TCanvas('c2','c2', w, h)
 	c3 = TCanvas('c3','c3', w, h)
 	c4 = TCanvas('c4','c4', w, h)
+
+	l1 = TLine()
+	l1.SetLineStyle(kDashed)
+	l1.SetLineColor(kBlack)
 
 	c1.cd()
 	hGen.Draw()
@@ -389,10 +396,14 @@ def RootPlot():
 	hTruth.Draw()
 	c3.cd()
 	nGen.Draw('AP')
-	c3.BuildLegend()
+	c3.BuildLegend().SetBorderSize(0)
+	for i in range(len(groupLabels)-1):
+		l1.DrawLine(25 + i*5, nGen.GetYaxis().GetXmin(),25+i*5, nGen.GetYaxis().GetXmax())
 	c4.cd()
 	nTruth.Draw('AP')
-	c4.BuildLegend()
+	c4.BuildLegend().SetBorderSize(0)
+	for i in range(len(groupLabels)-1):
+		l1.DrawLine(25 + i*5, nTruth.GetYaxis().GetXmin(),25+i*5, nTruth.GetYaxis().GetXmax())
 
 	c1.cd()
 	c1.SaveAs(filepath + 'genDistribution.png')
