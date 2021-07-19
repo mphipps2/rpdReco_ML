@@ -19,13 +19,26 @@ import pandas as pd
 import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 
-def get_model(normalizer):
-    #linear model, 16 channels -> 2 positional coordinates
-    model = keras.Sequential([
-        layers.InputLayer(input_shape=[16]),
-        normalizer,
-        layers.Dense(units=2, activation = 'linear')
-    ])
+def get_linear_model(normalizer):
+    #linear model, input layer -> normalized -> 2 positional coordinates
+    inputs = keras.Input(shape = (16,))
+    normed = normalizer(inputs)
+    prediction = layers.Dense(2, activation = 'linear')(normed)
+
+    model = keras.models.Model(inputs=inputs, outputs = prediction)
+
+    return model
+
+def get_fc_model(normalizer):
+    #fully connected model, input -> normalized -> 64 node hidden layer -> 64 node hidden layer -> 2 positional coordinates
+    inputs = keras.Input(shape = (16,))
+    normed = normalizer(inputs)
+    out = layers.Dense(64, activation = 'linear')(normed)
+    out = layers.Dense(64, activation = 'linear')(out)
+    prediction = layers.Dense(2, activation = 'linear')(out)
+
+    model = keras.models.Model(inputs=inputs, outputs = prediction)
+
     return model
 
 def get_normalizer(data):
@@ -107,9 +120,9 @@ def directCOMComparison():
 
 def train_linear():
     train_size = 0.8
-    model_num = 3
+    model_num = 6
     model_loss = 'mse'
-    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}_unsubtracted/"
+    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}/"
     random_state = 42
 
     print("Getting Dataset...")
@@ -119,7 +132,7 @@ def train_linear():
     print("A: ", A)
     print('columns: ', A.columns)
     #A = pd.concat([A,findCOM(A.iloc[:,8:24])],axis = 1)
-    #A = get_averages(A)
+    A = get_averages(A)
     #using state 42 for verification purposes
     train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
@@ -146,11 +159,11 @@ def train_linear():
     print(val_y.head())
 
     normalizer = get_normalizer(train_X)
-    model = get_model(normalizer)
+    model = get_fc_model(normalizer)
     print("Model Received.")
     model.summary()
     model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse','msle'])
-    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 10, monitor='val_loss', restore_best_weights = True)
+    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 15, monitor='val_loss', restore_best_weights = True)
 
     print("Starting training:")
     history = model.fit(
@@ -177,6 +190,10 @@ def train_linear():
     f.write('\nval_loss:' + str(np.min(val_mse)))
     weights = model.layers[-1].get_weights()
     f.write('\n' + str(weights))
+    f.close()
+
+    f = open(filepath + f'linear_{model_num}_{model_loss}_summary.txt', 'w')
+    model.summary(print_fn = lambda x: f.write(x+'\n'))
     f.close()
 
     #Taken from train_cnn to compare vs cnn model

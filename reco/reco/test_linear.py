@@ -141,11 +141,11 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 	genGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
 	truthGraph.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
 	genGraph.GetXaxis().SetLimits(20.,40.)
-	genGraph.GetYaxis().SetRangeUser(0,6)
-	genGraph.GetYaxis().SetLimits(0,6)
+	genGraph.GetYaxis().SetRangeUser(0,1.4)
+	genGraph.GetYaxis().SetLimits(0,1.4)
 	truthGraph.GetXaxis().SetLimits(20.,40.)
-	truthGraph.GetYaxis().SetRangeUser(0,8)
-	truthGraph.GetYaxis().SetLimits(0,8)
+	truthGraph.GetYaxis().SetRangeUser(0,2.5)
+	truthGraph.GetYaxis().SetLimits(0,2.5)
 	return genGraph, truthGraph
 
 def PlotMplDistributions(measuredDf, filepath, file_num, df, groupLabels, ptLabels):
@@ -335,14 +335,14 @@ def MplPlot():
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 1
+	file_num = 6
 	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}/"
 	bins = 100
 
 	#loads datasets
 	test_A = pd.read_pickle(filepath + 'test_A.pickle')
 	#set test_x based on model: 8:24 for allchan, 24:32 for avg, 24:26 for CoM
-	test_X = test_A.iloc[:,24:26]
+	test_X = test_A.iloc[:,8:24]
 	Q_avg = test_A.iloc[:,0:2]
 	psi_truth = test_A.iloc[:,5]
 	pt_nuc = test_A.iloc[:,4].multiply(1000)
@@ -350,10 +350,6 @@ def RootPlot():
 	
 	model = keras.models.load_model(filepath+f'linear_{file_num}_{model_loss}.h5',compile = False)
 	Q_predicted = model.predict([test_X.astype('float')])
-	
-	f = open(filepath + f'linear_{file_num}_{model_loss}_summary.txt', 'w')
-	model.summary(print_fn = lambda x: f.write(x+'\n'))
-	f.close()
 	
 	psi_rec = np.arctan2(Q_predicted[:,1],Q_predicted[:,0])
 	psi_gen = np.arctan2(Q_avg.iloc[:,1],Q_avg.iloc[:,0])
