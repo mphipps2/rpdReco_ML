@@ -32,9 +32,15 @@ def get_linear_model(normalizer):
 def get_fc_model(normalizer):
     #fully connected model, input -> normalized -> 64 node hidden layer -> 64 node hidden layer -> 2 positional coordinates
     inputs = keras.Input(shape = (16,))
-    normed = normalizer(inputs)
-    out = layers.Dense(64, activation = 'linear')(normed)
-    out = layers.Dense(64, activation = 'linear')(out)
+    #normed = normalizer(inputs)
+    out = layers.Dense(64)(inputs)#normed)
+    out = layers.Activation('relu')(out)
+    out = layers.BatchNormalization()(out)
+    out = layers.Dropout(0.3)(out)
+    out = layers.Dense(64)(out)
+    out = layers.Activation('relu')(out)
+    out = layers.BatchNormalization()(out)
+    out = layers.Dropout(0.3)(out)
     prediction = layers.Dense(2, activation = 'linear')(out)
 
     model = keras.models.Model(inputs=inputs, outputs = prediction)
@@ -99,9 +105,9 @@ def directCOMComparison():
     centerY = -0.471659
     model_num = 1
     model_loss = 'CoM'
-    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}_unsubtracted/"
+    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}/"
 
-    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A', subtract = False)
+    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A')
     A = A.drop_duplicates()
 
     rpdSignals = A.iloc[:,8:24]
@@ -120,19 +126,19 @@ def directCOMComparison():
 
 def train_linear():
     train_size = 0.8
-    model_num = 6
+    model_num = 28
     model_loss = 'mse'
     filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}/"
     random_state = 42
 
     print("Getting Dataset...")
 
-    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A', subtract = False)
+    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A')
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
     #A = pd.concat([A,findCOM(A.iloc[:,8:24])],axis = 1)
-    A = get_averages(A)
+    #A = get_averages(A)
     #using state 42 for verification purposes
     train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
@@ -163,13 +169,13 @@ def train_linear():
     print("Model Received.")
     model.summary()
     model.compile(optimizer = 'adam', loss = model_loss, metrics=['mae','mse','msle'])
-    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.01, patience = 15, monitor='val_loss', restore_best_weights = True)
+    early_stopping = keras.callbacks.EarlyStopping(min_delta = 0.05, patience = 15, monitor='val_loss', restore_best_weights = True)
 
     print("Starting training:")
     history = model.fit(
         train_X, train_y,
         validation_data = (val_X, val_y),
-        batch_size = 512,
+        batch_size = 256,
         epochs = 500,
         callbacks=[early_stopping],
         verbose=1
@@ -186,7 +192,7 @@ def train_linear():
     val_msle = history.history['msle']
 
     f = open(filepath + f'linear_{model_num}.txt', 'w')
-    f.write('Difference: Channel averages linear model')
+    f.write('Difference: Batchnorm after activation with dropout, no normalizer')
     f.write('\nval_loss:' + str(np.min(val_mse)))
     weights = model.layers[-1].get_weights()
     f.write('\n' + str(weights))

@@ -335,7 +335,7 @@ def MplPlot():
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 6
+	file_num = 28
 	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}/"
 	bins = 100
 
