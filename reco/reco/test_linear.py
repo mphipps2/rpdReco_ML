@@ -272,7 +272,7 @@ def PlotMplNeutronDependence(std, sem, groupLabels, filepath, file_num):
 	plt.savefig(filepath + f'//model{file_num}_truth_stratsigmas.png')
 
 def MplPlot():
-	model_loss = 'mse'
+	model_loss = 'mae'
 	file_num = 5
 	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}"
 	bins = 100
@@ -335,8 +335,8 @@ def MplPlot():
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 28
-	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{file_num}_{model_loss}/"
+	file_num = 68
+	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/linear_models/model_{file_num}_{model_loss}/"
 	bins = 100
 
 	#loads datasets
@@ -350,10 +350,14 @@ def RootPlot():
 	
 	model = keras.models.load_model(filepath+f'linear_{file_num}_{model_loss}.h5',compile = False)
 	Q_predicted = model.predict([test_X.astype('float')])
-	
+
 	psi_rec = np.arctan2(Q_predicted[:,1],Q_predicted[:,0])
 	psi_gen = np.arctan2(Q_avg.iloc[:,1],Q_avg.iloc[:,0])
 
+	print(psi_gen)
+	print(psi_rec)
+
+	#Using pandas df output
 	psi_gen_rec = psi_gen.subtract(psi_rec)
 	psi_gen_rec[psi_gen_rec > np.pi] = -2*np.pi + psi_gen_rec
 	psi_gen_rec[psi_gen_rec < -np.pi] = 2*np.pi + psi_gen_rec
@@ -365,7 +369,7 @@ def RootPlot():
 	treeA = array2tree(numParticles.to_numpy(dtype = [('numParticles',np.int32)]))
 	array2tree(pt_nuc.to_numpy(dtype = [('pt_nuclear',np.float64)]), tree = treeA)
 	array2tree(psi_gen_rec.to_numpy(dtype = [('psi_gen_rec',np.float64)]), tree = treeA)
-	array2tree(psi_truth_rec.to_numpy(dtype = [('psi_truth_rec',np.float64)]), tree = treeA)
+	array2tree(psi_truth_rec.to_numpy(dtype=[('psi_truth_rec',np.float64)]), tree = treeA)
 
 	#Plots histograms for gen-reco, truth-reco distributions
 

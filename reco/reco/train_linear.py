@@ -1,4 +1,5 @@
 import os
+from re import I
 import sys
 
 sys.path.append('/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/rpdreco/reco')
@@ -33,14 +34,28 @@ def get_fc_model(normalizer):
     #fully connected model, input -> normalized -> 64 node hidden layer -> 64 node hidden layer -> 2 positional coordinates
     inputs = keras.Input(shape = (16,))
     #normed = normalizer(inputs)
-    out = layers.Dense(64)(inputs)#normed)
+    #out = layers.BatchNormalization()(inputs)
+
+    out = layers.Dense(256)(inputs)
     out = layers.Activation('relu')(out)
     out = layers.BatchNormalization()(out)
-    out = layers.Dropout(0.3)(out)
-    out = layers.Dense(64)(out)
+    #out = layers.Dropout(0.4)(out)
+
+    out = layers.Dense(256)(out)
     out = layers.Activation('relu')(out)
     out = layers.BatchNormalization()(out)
-    out = layers.Dropout(0.3)(out)
+    #out = layers.Dropout(0.4)(out)
+
+    out = layers.Dense(256)(out)
+    out = layers.Activation('relu')(out)
+    out = layers.BatchNormalization()(out)
+    #out = layers.Dropout(0.4)(out)
+    
+    out = layers.Dense(256)(out)
+    out = layers.Activation('relu')(out)
+    out = layers.BatchNormalization()(out)
+    #out = layers.Dropout(0.4)(out)
+
     prediction = layers.Dense(2, activation = 'linear')(out)
 
     model = keras.models.Model(inputs=inputs, outputs = prediction)
@@ -115,7 +130,7 @@ def directCOMComparison():
 
     print(com)
     #input()
-    os.mkdir(filepath)
+    #os.mkdir(filepath)
 
     comPhi = getCOMReactionPlane(com, centerX, centerY)
     A['ComPhi'] = comPhi
@@ -126,14 +141,14 @@ def directCOMComparison():
 
 def train_linear():
     train_size = 0.8
-    model_num = 28
+    model_num = 53
     model_loss = 'mse'
-    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/models/model_{model_num}_{model_loss}/"
+    filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/linear_models/model_{model_num}_{model_loss}/"
     random_state = 42
 
     print("Getting Dataset...")
 
-    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A')
+    A = io.get_dataset(folder = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/data/", side = 'A', subtract = True)
     A = A.drop_duplicates()
     print("A: ", A)
     print('columns: ', A.columns)
@@ -158,13 +173,13 @@ def train_linear():
     
     #sanity check
     print('Training Data:\n')
-    print(train_X.head())
-    print(train_y.head())
+    print(train_X)
+    print(train_y)
     print('Validation Data:\n')
-    print(val_X.head())
-    print(val_y.head())
+    print(val_X)
+    print(val_y)
 
-    normalizer = get_normalizer(train_X)
+    normalizer = get_normalizer(A.iloc[:,8:24])
     model = get_fc_model(normalizer)
     print("Model Received.")
     model.summary()
@@ -175,7 +190,7 @@ def train_linear():
     history = model.fit(
         train_X, train_y,
         validation_data = (val_X, val_y),
-        batch_size = 256,
+        batch_size = 2048,
         epochs = 500,
         callbacks=[early_stopping],
         verbose=1
@@ -184,15 +199,16 @@ def train_linear():
     print("Training completed.")
     model.save(filepath + f'//linear_{model_num}_{model_loss}.h5') 
 
-    train_mse = history.history['mse']
-    val_mse = history.history['val_mse']
+    utrain_mse = history.history['mse']
+    train_mse = [5 if train > 5 else train for train in utrain_mse]
+    uval_mse = history.history['val_mse']
+    val_mse = [5 if val > 5 else val for val in uval_mse]
     train_mae = history.history['mae']
     val_mae = history.history['val_mae']
     train_msle = history.history['msle']
     val_msle = history.history['msle']
 
     f = open(filepath + f'linear_{model_num}.txt', 'w')
-    f.write('Difference: Batchnorm after activation with dropout, no normalizer')
     f.write('\nval_loss:' + str(np.min(val_mse)))
     weights = model.layers[-1].get_weights()
     f.write('\n' + str(weights))
@@ -208,6 +224,7 @@ def train_linear():
     plt.plot(epochs, train_mse, color='black', label='Training set')
     plt.plot(epochs, val_mse, 'b', label='Validation set')
     plt.title('')
+    plt.ylim([0.5,1.5*np.min(val_mse)])
     plt.xlabel('Epoch')
     plt.ylabel('Mean Squared Error')
     plt.legend()
@@ -217,6 +234,7 @@ def train_linear():
     plt.plot(epochs, train_mae, color='black', label='Training mae')
     plt.plot(epochs, val_mae, 'b', label='Validation mae')
     plt.title('')
+    plt.ylim([0.5,5+np.min(val_mae)])
     plt.xlabel('Epoch')
     plt.ylabel('Mean Absolute Error')
     plt.legend()
