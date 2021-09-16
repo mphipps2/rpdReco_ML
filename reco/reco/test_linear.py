@@ -320,8 +320,10 @@ def MplPlot():
 	ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
 	df['ptBins'] = pd.cut(x = df.iloc[:,1], bins = [5, 15, 25, 35, 45, np.inf], labels = ptLabels, right = False, include_lowest = True)
 	#creates bins for neutron clusters. For future reference, do not do this in python
-	groupLabels = [22, 27, 32, 37]
-	df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
+
+        groupLabels = [22, 27, 32, 37]
+
+        df['nbins'] = pd.cut(x = df.iloc[:,0], bins =[20,25,30,35,40], labels = groupLabels, right = False, include_lowest = True)
 
 	measuredDf = df #df[df['ptBins'] == 'pt4']
 
