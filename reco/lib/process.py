@@ -52,6 +52,13 @@ def subtract_signals(data):
                         data[f'rpd{row}_{col}_Charge'] = data[f'rpd{row}_{col}_Charge'] - data[f'rpd{subtr_row}_{col}_Charge']
         return data
 
+def subtract_signals_peak(data):
+        for row in range(3,0,-1):
+                for col in range(0,4,1):
+                        subtr_row = row - 1
+                        data[f'rpd{row}_{col}_Peak_max'] = data[f'rpd{row}_{col}_Peak_max'] - data[f'rpd{subtr_row}_{col}_Peak_max']
+        return data
+
 def GetPsiResidual(psi_true, psi_rec):
         psi_truth_res = psi_true.subtract(psi_rec)
         psi_truth_res[psi_truth_res > np.pi] = -2*np.pi + psi_truth_res

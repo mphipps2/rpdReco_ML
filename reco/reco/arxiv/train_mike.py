@@ -26,17 +26,24 @@ if __name__ == '__main__':
 
     debug = False
     train_size = 0.8
-    model_num = 201
-    model_type = "linear"
+    model_num = 100
+    model_type = "fcn"
     model_loss = "mse"
     use_neutrons = False
     use_unit_vector = True
     do_z_norm = False
+    make_two_train_samples = True
+    do_truth_pos_plot = True
+    do_subtracted_channel_plot = True
+    do_position_resolution = True
+    two_trainer_ratio = 0.6
+    two_trainer_filename = "40batch"
 #    scenario = "ToyFermi_qqFibers_LHC_noPedNoise"
     scenario = "ToyFermi_qRods_LHC_noPedNoise/"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/"+scenario
+    data_file = "Acharge.pickle"
     random_state = 42
     my_batch_size = 2048
     my_epochs = 500
@@ -53,16 +60,7 @@ if __name__ == '__main__':
     
     print("Getting Dataset...")
 
-
-
-    #load trained model
-    if debug:
-        print("loading model")
-    model = keras.models.load_model(model_path + f'model{model_type}_{model_num}_{model_loss}.h5',compile = False)
-
-
-    
-    A = io.get_dataset(folder = data_path, side = 'A', subtract = True)
+    A = io.get_dataset(filename = data_path + data_file, subtract = True)
     A = A.drop_duplicates()
 
     if debug == True:    
@@ -73,6 +71,12 @@ if __name__ == '__main__':
     train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
 
+    if make_two_train_samples:
+            train_A, train_B = train_test_split(train_A, test_size= 1.-two_trainer_ratio, random_state = random_state)
+            val_A, val_B = train_test_split(val_A, test_size= 1.-0.5, random_state = random_state)
+            train_B.to_pickle(data_path + f'train2_{two_trainer_filename}.pickle')
+            val_B.to_pickle(data_path + f'val2_{two_trainer_filename}.pickle')
+    
     if do_z_norm:
         scaler = StandardScaler()
         train_X = train_A.iloc[:,8:24]
@@ -129,7 +133,12 @@ if __name__ == '__main__':
         print(val_X)
         print(val_y)
 
-    
+    A_np = A.to_numpy()
+    if do_truth_pos_plot:
+        vis_root.PlotTruthPos(A_np[:,0], A_np[:,1], output_path)
+    if do_subtracted_channel_plot:
+        vis_root.PlotSubtractedChannels(A_np[:,8:24], output_path)
+        
     # normalizer = process.get_normalizer(rpdSignals)
     
     if model_type == 'cnn':
@@ -167,8 +176,10 @@ if __name__ == '__main__':
     )
 
     print("Training completed.")
-    model.save(model_path + f'model{model_type}_{model_num}_{model_loss}.h5') 
-
+    if make_two_train_samples:
+        model.save(model_path + f'model{model_type}_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.h5') 
+    else:
+        model.save(model_path + f'model{model_type}_{model_num}_{model_loss}.h5') 
     train_mse = history.history['mse']
     val_mse = history.history['val_mse']
     train_mae = history.history['mae']
@@ -185,7 +196,11 @@ if __name__ == '__main__':
     model.summary(print_fn = lambda x: f.write(x+'\n'))
     f.close()
 
-    vis_mpl.PlotTrainingComp(len(train_mae), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}.png')
+    if make_two_train_samples:
+        vis_mpl.PlotTrainingComp(len(train_mae), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
+    else:
+        vis_mpl.PlotTrainingComp(len(train_mae), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
 
     print('loss: ', np.min(train_mse))
     print('val loss:', np.min(val_mse))
+

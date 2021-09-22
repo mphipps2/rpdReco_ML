@@ -30,22 +30,21 @@ if __name__ == '__main__':
     model_type = "cnn"
     model_loss = "mse"
     use_neutrons = False
+    subtract = True
     use_unit_vector = True
     do_z_norm = False
     make_two_train_samples = False
     do_truth_pos_plot = True
-    do_unsubtracted_channel_plot = True
-    do_subtracted_channel_plot = True
-    subtract = True
+    do_subtracted_channel_plot = False
+    do_position_resolution = True
     two_trainer_ratio = 0.6
     two_trainer_filename = "40batch"
-    scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
-#    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
+#    scenario = "ToyFermi_qqFibers_LHC_noPedNoise"
+    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/"+scenario
-    data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA.pickle"
-#    data_file = "A.pickle"
+    data_file = "Acharge.pickle"
     random_state = 42
     my_batch_size = 2048
     my_epochs = 500
@@ -62,21 +61,11 @@ if __name__ == '__main__':
     
     print("Getting Dataset...")
 
-    A = io.get_dataset_peak(filename = data_path+data_file)
+    A = io.get_dataset(filename = data_path + data_file)
     A = A.drop_duplicates()
-
-    A_np = A.to_numpy()
-    if do_unsubtracted_channel_plot:
-        vis_root.PlotUnsubtractedChannels(A_np[:,6:22], output_path)
-    if do_truth_pos_plot:
-        print("qx: ", A_np[:,1], "qy: ", A_np[:,2])
-        vis_root.PlotTruthPos(A_np[:,1], A_np[:,2], output_path)
-        
+    
     if subtract:
-        A = process.subtract_signals_peak(A)
-    if do_subtracted_channel_plot:
-        vis_root.PlotSubtractedChannels(A_np[:,6:22], output_path)
-
+        A = process.subtract_signals(A)
     if debug == True:    
         print("A: ", A)
         print('columns: ', A.columns)
@@ -93,11 +82,11 @@ if __name__ == '__main__':
     
     if do_z_norm:
         scaler = StandardScaler()
-        train_X = train_A.iloc[:,6:22]
+        train_X = train_A.iloc[:,8:24]
         train_X = scaler.fit_transform(train_X)
-        val_X = val_A.iloc[:,6:22]
+        val_X = val_A.iloc[:,8:24]
         val_X = scaler.transform(val_X)
-        test_X = test_A.iloc[:,6:22]
+        test_X = test_A.iloc[:,8:24]
         test_X = scaler.transform(test_X)
 
     if debug == True:
@@ -111,21 +100,21 @@ if __name__ == '__main__':
     test_A = test_A.to_numpy()
 
     if not do_z_norm:
-        train_X = train_A[:,6:22]
-        val_X = val_A[:,6:22]
-        test_X = test_A[:,6:22]    
+        train_X = train_A[:,8:24]
+        val_X = val_A[:,8:24]
+        test_X = test_A[:,8:24]    
 
-    train_neutrons = train_A[:, 0]
-    val_neutrons = val_A[:, 0]
-    test_neutrons = test_A[:, 0]
+    train_neutrons = train_A[:, 7]
+    val_neutrons = val_A[:, 7]
+    test_neutrons = test_A[:, 7]
     
     # blur to zdcs resolution
     train_neutrons = process.blur_neutron(train_neutrons)
     val_neutrons = process.blur_neutron(val_neutrons)
     test_neutrons = process.blur_neutron(test_neutrons)
 
-    train_y = train_A[:,1:3]
-    val_y = val_A[:,1:3]
+    train_y = train_A[:,0:2]
+    val_y = val_A[:,0:2]
     if use_unit_vector:
         train_y = norm.get_unit_vector(train_y)
         val_y = norm.get_unit_vector(val_y)
@@ -147,6 +136,11 @@ if __name__ == '__main__':
         print(val_X)
         print(val_y)
 
+    A_np = A.to_numpy()
+    if do_truth_pos_plot:
+        vis_root.PlotTruthPos(A_np[:,0], A_np[:,1], output_path)
+    if do_subtracted_channel_plot:
+        vis_root.PlotSubtractedChannels(A_np[:,8:24], output_path)
         
     # normalizer = process.get_normalizer(rpdSignals)
     
