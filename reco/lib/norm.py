@@ -1,3 +1,5 @@
+import numpy as np
+
 def norm_neutron(n_hit):
                 
         print('unnormalized n_hit: ' , n_hit)
@@ -7,46 +9,15 @@ def norm_neutron(n_hit):
         print('normalized width: ' , n_hit)
         return n_hit
 
-def z_norm(data):
+def z_norm_np(data):
 
-        data['channel_15'] = data['channel_15'] - data['channel_15'].mean()
-        data['channel_15'] = data['channel_15'] / data['channel_15'].std()
+        for i in range(np.size(data,1)):
+                print("i: ", i)
+                print("mean: ", np.mean(data,axis=0))
+                data[:,i] = data[:,i] - np.mean(data,axis=0)[i]
+                data[:,i] = data[:,i] / np.std(data,axis=0)[i]
 
-        data['channel_14'] = data['channel_14'] - data['channel_14'].mean()
-        data['channel_14'] = data['channel_14'] / data['channel_14'].std()
 
-        data['channel_13'] = data['channel_13'] - data['channel_13'].mean()
-        data['channel_13'] = data['channel_13'] / data['channel_13'].std()
-
-        data['channel_12'] = data['channel_12'] - data['channel_12'].mean()
-        data['channel_12'] = data['channel_12'] / data['channel_12'].std()
-
-        data['channel_11'] = data['channel_11'] - data['channel_11'].mean()
-        data['channel_11'] = data['channel_11'] / data['channel_11'].std()
-
-        data['channel_10'] = data['channel_10'] - data['channel_10'].mean()
-        data['channel_10'] = data['channel_10'] / data['channel_10'].std()
-
-        data['channel_9'] = data['channel_9'] - data['channel_9'].mean()
-        data['channel_9'] = data['channel_9'] / data['channel_9'].std()
-
-        data['channel_8'] = data['channel_8'] - data['channel_8'].mean()
-        data['channel_8'] = data['channel_8'] / data['channel_8'].std()
-
-        data['channel_7'] = data['channel_7'] - data['channel_7'].mean()
-        data['channel_7'] = data['channel_7'] / data['channel_7'].std()
-
-        data['channel_6'] = data['channel_6'] - data['channel_6'].mean()
-        data['channel_6'] = data['channel_6'] / data['channel_6'].std()
-
-        data['channel_5'] = data['channel_5'] - data['channel_5'].mean()
-        data['channel_5'] = data['channel_5'] / data['channel_5'].std()
-
-        data['channel_4'] = data['channel_4'] - data['channel_4'].mean()
-        data['channel_4'] = data['channel_4'] / data['channel_4'].std()
-
-        data['numParticle'] = data['numParticle'] - data['numParticle'].mean()
-        data['numParticle'] = data['numParticle'] / data['numParticle'].std()
         return data
 
 def get_unit_vector(arr):

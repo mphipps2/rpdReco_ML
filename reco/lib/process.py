@@ -1,3 +1,35 @@
+import tensorflow.keras as keras
+import time
+import pandas as pd
+from sklearn.model_selection import train_test_split
+import numpy as np
+from numpy import pad
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import random
+import os
+import sys
+
+plt.rcParams.update({'font.size': 15})
+plt.rcParams.update({"savefig.bbox": 'tight'})
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Dense, Dropout, Flatten, Conv2D, MaxPool2D, Reshape
+from tensorflow.keras.models import Model
+import tensorflow
+import time
+from tensorflow.keras.layers import BatchNormalization
+import tensorflow.keras.backend as K
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.models import load_model
+
+from tensorflow.python.client import device_lib
+
+
+
+#import numpy as np
+#import pandas as pd
+from tensorflow.keras.layers.experimental.preprocessing import Normalization
 
 def blur_neutron(n_hit):
         blur = []        
@@ -20,8 +52,28 @@ def subtract_signals(data):
                         data[f'rpd{row}_{col}_Charge'] = data[f'rpd{row}_{col}_Charge'] - data[f'rpd{subtr_row}_{col}_Charge']
         return data
 
+def subtract_signals_peak(data):
+        for row in range(3,0,-1):
+                for col in range(0,4,1):
+                        subtr_row = row - 1
+                        data[f'rpd{row}_{col}_Peak_max'] = data[f'rpd{row}_{col}_Peak_max'] - data[f'rpd{subtr_row}_{col}_Peak_max']
+        return data
 
-def process_signal(ary, normalization = False, flatten = False, padding = 1):
+def GetPsiResidual(psi_true, psi_rec):
+        psi_truth_res = psi_true.subtract(psi_rec)
+        psi_truth_res[psi_truth_res > np.pi] = -2*np.pi + psi_truth_res
+        psi_truth_res[psi_truth_res < -np.pi] = 2*np.pi + psi_truth_res
+        return psi_truth_res
+
+def GetPsiResidual_np(psi_true, psi_rec):
+        psi_truth_res = psi_true - psi_rec
+        print("psi_truth_res shape: ", psi_truth_res.shape)
+#        psi_truth_res[psi_truth_res > np.pi] = -2*np.pi + psi_truth_res[psi_truth_res > np.pi]
+        psi_truth_res[psi_truth_res > np.pi] += -2*np.pi 
+        psi_truth_res[psi_truth_res < -np.pi] += 2*np.pi 
+        return psi_truth_res
+
+def reshape_signal(ary, normalization = False, flatten = False, padding = 1):
 
 #        print('ary before: ', ary)
         if normalization:
@@ -39,3 +91,89 @@ def process_signal(ary, normalization = False, flatten = False, padding = 1):
 #        print('ary after: ', ary)
         return ary
 
+
+def findCOM(rpd):
+        com = pd.DataFrame(0, index=np.arange(len(rpd)), columns = ['comX', 'comY'])
+        totalSignal = rpd.sum(axis=1)
+
+        for ch in range(len(rpd.columns)):
+                x = 0
+                y = 0
+                if ch < 4: y = 1.5
+                elif (ch >= 4 and ch < 8): y = 0.5
+                elif (ch >= 8 and ch < 12): y = -0.5
+                else: y = -1.5
+
+                if ch%4 == 0: x = 1.5
+                elif ch%4 == 1: x = 0.5
+                elif ch%4 == 2: x = -0.5
+                elif ch%4 == 3: x = -1.5
+
+                com.comX += x*rpd.iloc[:,ch]
+                com.comY += y*rpd.iloc[:,ch]
+        com.comX/=totalSignal
+        com.comY/=totalSignal
+        return com
+
+def getCOMReactionPlane(com, centerX, centerY):
+	com.comY = com.comY-centerY
+	com.comX = com.comX-centerX
+	phi = np.arctan2(com.comY, com.comX)
+	return phi
+
+
+def findCOM_np (rpd):
+        print("rpd, ",rpd)
+        print("rpd_shape ", np.shape(rpd))
+        total_signal = np.sum(rpd,axis=1)
+        print("total signal ", total_signal)
+        com = np.zeros((len(rpd),2))
+        for ch in range(np.size(rpd,1)):
+                x = 0
+                y = 0
+                if ch < 4: y = 1.5
+                elif (ch >= 4 and ch < 8): y = 0.5
+                elif (ch >= 8 and ch < 12): y = -0.5
+                else: y = -1.5
+
+                if ch%4 == 0: x = 1.5
+                elif ch%4 == 1: x = 0.5
+                elif ch%4 == 2: x = -0.5
+                elif ch%4 == 3: x = -1.5
+
+                com[:,0] += x*rpd[:,ch]
+                com[:,1] += y*rpd[:,ch]
+        com[:,0] /= total_signal
+        com[:,1] /= total_signal
+        print("com0 ", com[:,0], " com1 " , com[:,1], " total signal " , total_signal)
+        return com
+
+def getCOMReactionPlane_np(com, centerX, centerY):
+        com_y = com[:,1]-centerY
+        com_x = com[:,0]-centerX
+        phi = np.arctan2(com_y, com_x)
+        print("com_y " , com_y , " com_x " , com_x , " phi " , phi)
+        return phi
+
+def get_normalizer(data):
+    normalizer = Normalization(axis = None)
+    normalizer.adapt(data)
+    return normalizer
+
+
+def get_averages(data):
+    print(data.head(5))
+    for row in range(4):
+        temp = pd.Series(0, index=np.arange(len(data)))
+        for column in range(4):
+            temp = temp.add(data.iloc[:, 8 + 4*row + column])
+        temp = temp.divide(4)
+        data[f'rowAvg_{row}']=temp
+    for column in range(4):
+        temp = pd.Series(0, index = np.arange(len(data)))
+        for row in range(4):
+            temp = temp.add(data.iloc[:, 8 + 4*row + column])
+        temp = temp.divide(4)
+        data[f'colAvg_{column}']=temp
+    print(data.head(5))
+    return data
