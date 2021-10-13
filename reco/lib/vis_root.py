@@ -490,8 +490,10 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
 
         color = kBlue
-        maxratio = 1.04
-        minratio = 0.88
+#        maxratio = 1.04
+        maxratio = 1.1
+#        minratio = 0.83
+        minratio = 0.87
         h1.SetMarkerColor(color)
         h2.SetMarkerColor(color)
         h1.SetLineColor(color)
@@ -512,11 +514,11 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
         rp.Draw("APE")
 #        gPad.Modified()
 #        gPad.Update()
-        rp.SetSplitFraction(0.6)
-        rp.GetXaxis().SetTitleOffset(1.1)
+ #       rp.SetSplitFraction(0.6)
+        rp.GetXaxis().SetTitleOffset(0.95)
         rp.GetLowYaxis().SetTitle("ratio")
-        rp.GetUpYaxis().SetTitleOffset(1.45)
-        rp.GetUpYaxis().SetRangeUser(0.3,0.95)
+        rp.GetUpperRefYaxis().SetTitleOffset(1.45)
+        rp.GetUpperRefYaxis().SetRangeUser(0.3,0.95)
         rp.GetLowerRefGraph().SetMinimum(minratio)
         rp.GetLowerRefGraph().SetMaximum(maxratio)
 
@@ -525,7 +527,7 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
         
         p = rp.GetUpperPad()
         p.cd()
-        l = p.BuildLegend(x1=0.6,y1=0.65,x2=0.9,y2=0.85).SetBorderSize(0)
+        l = p.BuildLegend(x1=0.56,y1=0.65,x2=0.88,y2=0.85).SetBorderSize(0)
         p.Modified()
         p.Update()
         c1.Update()        
@@ -681,11 +683,48 @@ def PlotSubtractedChannels(rpd_signal, output_dir):
                                 x = -1.5
                         h1.Fill(x,y,rpd_signal[val,ch])
         h1.Scale(1./np.size(rpd_signal,0))
+        com = np.zeros((1,2))
+        total_signal = 0.
+        for i in range(4):
+                for j in range(4):
+                        x = 0
+                        y = 0
+                        if i == 0: y = -1.5
+                        elif (i == 1): y = -0.5
+                        elif (i == 2): y = 0.5
+                        else: y = 1.5
+                        
+                        if j == 0: x = -1.5
+                        elif j == 1: x = -0.5
+                        elif j == 2: x = 0.5
+                        elif j == 3: x = 1.5
+                        
+                        com[:,0] += x*h1.GetBinContent(j+1,i+1)
+                        com[:,1] += y*h1.GetBinContent(j+1,i+1)
+                        total_signal += h1.GetBinContent(j+1,i+1)
+        com[:,0] /= total_signal
+        com[:,1] /= total_signal
+        print("com0 ", com[:,0], " com1 " , com[:,1], " total signal " , total_signal)
+
         h1.GetXaxis().SetTitle('Tile Pos x')
         h1.GetYaxis().SetTitle('Tile Pos y')
         gStyle.SetPalette(kBird)
         h1.SetContour(99)
         h1.Draw("colz")
+
+        m = TMarker(com[:,0], com[:,1], 29);
+        m.SetMarkerColor(kRed);
+        m.SetMarkerSize(4);
+        m.Draw();
+        tex = TLatex();
+        tex.SetNDC();
+        tex.SetTextFont(43);
+        tex.SetTextSize(21);
+        tex.SetLineWidth(2);
+        com_x = float('%.2g' % com[:,0])
+        com_y = float('%.2g' % com[:,1])
+        tex.DrawLatex(0.35,0.56,'CoM: ('+str(com_x)+', '+str(com_y)+')' );
+
         c2.SaveAs(output_dir+'SubtractedChannels.png')
         
 def PlotUnsubtractedChannels(rpd_signal, output_dir):
@@ -808,7 +847,7 @@ def PlotPredictionResiduals_neutron(numParticles, pt_nuc, psi_res, model_type, m
                 tge = TGraphErrors(n, x[i*4:i*4+4], y[i*4:i*4+4], ex[i*4:i*4+4], ey[i*4:i*4+4])
                 tge.SetDrawOption('AP')
 
-                lowPt = i*10 + 5
+                Lowpt = i*10 + 5
                 highPt = i*10 + 15
                 tge.SetMarkerColor(color)
                 
@@ -858,4 +897,62 @@ def PlotTrainingComp(nEpochs, train, val, ylabel, output_file):
         plt.legend()
         plt.savefig(output_file)
 
+def PlotTrainingComp(nEpochs, train_loss, val_loss, loss_function, output_file):
+
+        gROOT.SetStyle('ATLAS')
+        gStyle.SetPadLeftMargin(0.15)
+        gStyle.SetPadRightMargin(0.1)
+        w = 700
+        h = 600
+
+        c2 = TCanvas('c2','c2', w,  h)
+        c2.cd()
+        
+        h1 = TH1F("validation_loss","validation_loss",nEpochs,1,nEpochs)
+        h2 = TH1F("training_loss","training_loss",nEpochs,1,nEpochs)
+        val_loss_max = -1
+        loss_min = 1000000
+        for i in range(nEpochs):
+                print ('setting bin content: i ' , i , ' train_loss ' , train_loss[i])
+                h1.SetBinContent(i+1,val_loss[i])
+                h2.SetBinContent(i+1,train_loss[i])
+                if val_loss[i] > val_loss_max:
+                        val_loss_max = val_loss[i]
+                if val_loss[i] < loss_min:
+                        loss_min = val_loss[i]
+                elif train_loss[i] < val_loss[i] and train_loss[i] < loss_min:
+                        loss_min = train_loss[i]
+                
+        h1.GetXaxis().SetTitle('Epoch')
+        h1.SetTitle('Training loss')
+        h2.SetTitle('Validation loss')
+        if loss_function == 'mse':
+                h1.GetYaxis().SetTitle('Mean Squared Error')
+        elif loss_function == 'mae':
+                h1.GetYaxis().SetTitle('Mean Absolute Error')
+        else:
+                print("don't recognize that loss function. Pleas enter either mse or mae or update vis_root::PlotTrainingComp()")
+
+        h1.GetYaxis().SetTitleOffset(1.5)
+#        h1.GetYaxis().SetTitleSize(0.04)
+        h1.GetYaxis().SetNdivisions(505)
+        h1.SetMarkerColor(kBlack)
+        h1.SetLineColor(kBlack)
+        h2.SetMarkerColor(kBlue)
+        h2.SetLineColor(kBlue)
+        h1.GetYaxis().SetRangeUser(loss_min - 0.001,val_loss_max + 0.001)
+
+        h1.Draw('PL')
+        h2.Draw('PLsame')
+        
+        leg2 = TLegend(0.53,0.74,0.8,0.9)
+        leg2.SetBorderSize(0)
+        leg2.SetTextFont(43)
+        leg2.SetTextSize(21)
+        leg2.SetFillColor(0)
+        leg2.AddEntry(h1,"Validation Loss","plfe")
+        leg2.AddEntry(h2,"Training Loss","plfe")
+        leg2.Draw();
+        c2.SetFillColor(kWhite)
+        c2.SaveAs(output_file)
         

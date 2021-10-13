@@ -35,16 +35,18 @@ if __name__ == '__main__':
     debug = False
     model_num = 300    
     nmembers = 2
-    base_model_files = ["modelcnn_test_10_mse_twotrainer0.6.h5", "modelfcn_100_mse_twotrainer0.6.h5"]
+    base_model_files = ["modelcnn_100_mse_twotrainer0.6.h5", "modelfcn_150_mse_twotrainer0.6.h5"]
     two_trainer_filename = "40batch"
-#    scenario = "ToyFermi_qqFibers_LHC_noPedNoise"
-    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
+    scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
+    #scenario = "ToyFermi_qRods_LHC_noPedNoise/"
+    model_type_1_label = "ensemble_model"
+    model_type_2_label = "cnn_model"
     use_unit_vector = True
-    data_file = "test_A.pickle"
+    data_file = "test_A_40batch.pickle"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/" + scenario + "Model" + str(model_num) + "/"
-    upperRange_gen = 1.4
+    upperRange_gen = 0.9
     upperRange_truth = 2.5
     random_state = 42                        
     print("Tensorflow version: ", tensorflow.__version__)
@@ -54,8 +56,10 @@ if __name__ == '__main__':
     
     print("Getting Dataset...")
 
-    train_A = io.get_dataset(filename = data_path + "train2_" + two_trainer_filename + ".pickle", subtract = False)
-    val_A = io.get_dataset(filename = data_path + "val2_" + two_trainer_filename + ".pickle", subtract = False)
+#    train_A = io.get_dataset(filename = data_path + "train2_" + two_trainer_filename + ".pickle", subtract = False)
+    train_A = io.get_dataset_peak(filename = data_path + "train2_" + two_trainer_filename + ".pickle")
+    #val_A = io.get_dataset(filename = data_path + "val2_" + two_trainer_filename + ".pickle", subtract = False)
+    val_A = io.get_dataset_peak(filename = data_path + "val2_" + two_trainer_filename + ".pickle")
     test_A = pd.read_pickle(data_path + data_file).to_numpy()
 
     
@@ -69,12 +73,12 @@ if __name__ == '__main__':
     train_A = train_A.to_numpy()
     val_A = val_A.to_numpy()    
         
-    train_X = train_A[:,8:24]
-    val_X = val_A[:,8:24]
-    train_y = train_A[:,0:2]
-    val_y = val_A[:,0:2]
-    test_X = test_A[:,8:24]
-    test_y = test_A[:,0:2]
+    train_X = train_A[:,6:22]
+    val_X = val_A[:,6:22]
+    train_y = train_A[:,1:3]
+    val_y = val_A[:,1:3]
+    test_X = test_A[:,6:22]
+    test_y = test_A[:,1:3]
     if use_unit_vector:
         train_y = norm.get_unit_vector(train_y)
         val_y = norm.get_unit_vector(val_y)
@@ -84,10 +88,10 @@ if __name__ == '__main__':
     val_X_CNN = process.reshape_signal(val_X)
     test_X_CNN = process.reshape_signal(test_X)
 
-    psi_truth_A = test_A[:,5]
-    pt_nuc_A = test_A[:,4] * 1000
-    neutrons_A = test_A[:,7]
-    neutrons_A_smeared = process.blur_neutron(test_A[:,7])
+    psi_truth_A = test_A[:,3]
+    pt_nuc_A = test_A[:,5] * 1000
+    neutrons_A = test_A[:,0]
+    neutrons_A_smeared = process.blur_neutron(test_A[:,0])
     psi_gen_A = np.arctan2(test_y[:,1],test_y[:,0])
     
     #sanity check
@@ -160,6 +164,7 @@ if __name__ == '__main__':
     vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_rec_FCN, upperRange_gen, "psi_gen_FCN", output_path, save_residuals = False)
     vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_stack, upperRange_gen, "psi_gen_stack", output_path, save_residuals = False)
     vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_stack, upperRange_truth, "psi_truth_stack", output_path, save_residuals = False)
-    
+#    vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, pt_nuc_A, psi_gen_stack, psi_gen_rec_CNN, upperRange_gen, model_type_2_label , model_type_1_label, output_path, is_gen = True, save_residuals = False)
+    vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, pt_nuc_A, psi_gen_rec_CNN, psi_gen_stack, upperRange_gen, model_type_2_label , model_type_1_label, output_path, is_gen = True, save_residuals = False)
  #   stack.save(folder=model_path + f'ensemble_stack_{model_num}.h5') 
 #    wAvgEnsemble.save(folder=model_path + f'ensemble_wAvg_{model_num}.h5') 

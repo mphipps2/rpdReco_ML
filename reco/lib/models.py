@@ -111,6 +111,11 @@ def get_fcn_test():
     out = layers.BatchNormalization()(out)
     #out = layers.Dropout(0.4)(out)
 
+    out = layers.Dense(256)(out)
+    out = layers.Activation('relu')(out)
+    out = layers.BatchNormalization()(out)
+    #out = layers.Dropout(0.4)(out)
+    
     prediction = layers.Dense(2, activation = 'linear')(out)
 
     model = keras.models.Model(inputs=inputs, outputs = prediction)
@@ -133,6 +138,10 @@ def get_cnn_test():
     y = layers.BatchNormalization()(y)
     y = layers.Conv2D(filters = 64, kernel_size = (2,2), padding = 'Same', activation ='relu')(y)
     y = layers.BatchNormalization()(y)
+#    y = layers.Conv2D(filters = 32, kernel_size = (2,2), padding = 'Same', activation ='relu')(y)
+#    y = layers.BatchNormalization()(y)
+#    y = layers.Conv2D(filters = 64, kernel_size = (2,2), padding = 'Same', activation ='relu')(y)
+#    y = layers.BatchNormalization()(y)
     y = layers.Flatten()(y)
     
 #    y = layers.Dense(32, activation = "relu")(y)

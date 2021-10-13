@@ -26,7 +26,10 @@ if __name__ == '__main__':
 
     debug = False
     train_size = 0.8
-    model_num = 10
+#    train_size = 0.025
+#    test_val_size = 0.05
+    test_val_size = 0.2
+    model_num = 500
     model_type = "cnn"
     model_loss = "mse"
     use_neutrons = False
@@ -77,12 +80,13 @@ if __name__ == '__main__':
     if do_subtracted_channel_plot:
         vis_root.PlotSubtractedChannels(A_np[:,6:22], output_path)
 
+        
     if debug == True:    
         print("A: ", A)
         print('columns: ', A.columns)
 
     #using state 42 for verification purposes
-    train_A, tmpA = train_test_split(A, test_size= 1.-train_size, random_state = random_state)
+    train_A, tmpA = train_test_split(A, test_size = test_val_size, train_size = train_size, random_state = random_state)
     val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
 
     if make_two_train_samples:
@@ -206,10 +210,9 @@ if __name__ == '__main__':
     f.close()
 
     if make_two_train_samples:
-        vis_mpl.PlotTrainingComp(len(train_mae), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
+        vis_root.PlotTrainingComp(len(train_mae), train_mse, val_mse, model_loss, output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
     else:
-        vis_mpl.PlotTrainingComp(len(train_mae), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
-
+        vis_root.PlotTrainingComp(len(train_mae), train_mse, val_mse, model_loss, output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
     print('loss: ', np.min(train_mse))
     print('val loss:', np.min(val_mse))
 

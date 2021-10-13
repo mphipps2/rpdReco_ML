@@ -21,23 +21,24 @@ from array import array
 if __name__ == '__main__':
         debug = False
         model_loss = "mse"
-        model_num = 1
-        model_type = "cnn"
-        model_type_1_label = "cnn_qqFibers"
+        model_num = 50
+        model_type = "fcn"
+        model_type_1_label = "fcn_model50"
+        com_label = "com_qqFibers"
         use_neutrons = False
-        do_com = False
+        do_com = True
         do_z_norm = False
         do_small_batch = False
         use_unit_vector = True
         two_trainer_ratio = 0.6
         two_trainer_filename = "40batch"
         do_model_residuals = False
-        model_type_2 = "cnn_test"
-        model_type_2_label = "cnn_qRods"
-        model_num_2 = 10
+        model_type_2 = "cnn"
+        model_type_2_label = "cnn_model1"
+        model_num_2 = 1
         model_loss_2 = "mse"
-        model_2_is_qRod = True
-        model_2_is_qq = False
+        model_2_is_qRod = False
+        model_2_is_qq = True
         do_position_resolution = True
         do_truth_pos_plot = False
         do_subtracted_channel_plot = False
@@ -46,20 +47,22 @@ if __name__ == '__main__':
         do_ensemble_avg = False
         do_ratio_plot_ptnuc = True
         scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
-        scenario_2 = "ToyFermi_qRods_LHC_noPedNoise/"
+        scenario_2 = "ToyFermi_qqFibers_LHC_noPedNoise/"
         data_path = "../data/"+scenario
         model_path = "../models/"+scenario
         data_path_2 = "../data/"+scenario_2
         model_path_2 = "../models/"+scenario_2
-        data_file = "test_A.pickle"
+#        data_file = "test_A_25k.pickle"
+        data_file = "test_A_200k.pickle"
+#        data_file = "test_A_50k.pickle"
         data_znorm = "test_A_znorm.npy"
         output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Testing/" + scenario + "Model" + str(model_num) + "/"
-        upperRange_gen = 1.4
+        upperRange_gen = 0.95
         upperRange_truth = 2.5
         upperRange_predictionRes = 0.5
         # vertical offset in orginal data
         centerX_bias = 0
-        centerY_bias = -0.471659
+        centerY_bias = 0.67223859
 
         #load trained model
         if debug:
@@ -203,7 +206,8 @@ if __name__ == '__main__':
         if do_com:
                 vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_com_A, upperRange_gen, "psi_gen_com", output_path, save_residuals = False)
                 vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_com_A, upperRange_truth, "psi_truth_com", output_path,save_residuals = False)
-
+                vis_root.PlotRatio_ptnuc_hist( pt_nuc_A, pt_nuc_A, psi_gen_rec_A, psi_gen_com_A, upperRange_gen , model_type_1_label, com_label, output_path, is_gen = True, save_residuals = False)
+                
         if do_model_residuals:
                 vis_root.PlotPredictionResiduals(psi_res_model1_model2, model_type, model_type_2, "psi_mod1_mod2", output_path)
                 vis_root.PlotPredictionResiduals_neutron(neutrons_A, pt_nuc_A, psi_res_model1_model2, model_type, model_type_2, upperRange_predictionRes, "psi_mod1_mod2", output_path, save_residuals = False)
@@ -224,7 +228,8 @@ if __name__ == '__main__':
         if do_position_resolution:
                 # try again with 400k training; 500k test; 100k valid
                 vis_root.PlotPositionRes(test_A[:,1], test_A[:,2], psi_gen_rec_A, model_type_1_label, output_path, is_gen = True, save_residuals = True)
-
-        print("model2: residual: " , psi_gen_res_model2)
+                
         print("model1: residual: " , psi_gen_rec_A)
+    #    print("model2: residual: " , psi_gen_res_model2)
+    #
 	
