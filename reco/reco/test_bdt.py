@@ -1,5 +1,7 @@
 import sys
 
+from xgboost.sklearn import XGBClassifier
+
 sys.path.append('/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/rpdreco/reco')
 
 #import reco.lib.norm as norm
@@ -19,6 +21,13 @@ from array import array
 
 from ROOT import *
 from root_numpy import array2tree
+
+def normalize(dataset):
+	for i in range(len(dataset.columns)):
+		dataset.iloc[:,i] = dataset.iloc[:,i]-dataset.iloc[:,i].mean()
+		dataset.iloc[:,i] = dataset.iloc[:,i]/dataset.iloc[:,i].std()
+
+	return dataset
 
 def GaussianFit(h1):
 	f1 = TF1('f1','gaus',-np.pi,np.pi)
@@ -143,7 +152,7 @@ def PlotRootNeutronDependence(dataTree, groupLabels, ptLabels, parameter):
 
 def RootPlot():
 	model_loss = 'mse'
-	file_num = 1
+	file_num = 13
 	filepath = f"/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/bdt_models/model_{file_num}_{model_loss}/"
 	bins = 100
 
@@ -156,11 +165,14 @@ def RootPlot():
 	pt_nuc = test_A.iloc[:,4].multiply(1000)
 	numParticles = test_A.iloc[:,7]
 	
-	model = xgb.XGBRegressor()
-	model.load_model(filepath+f'bdt_{file_num}_{model_loss}.json')
-	Q_predicted = model.predict(test_X.to_numpy(), iteration_range=(0, model.best_iteration))
+	modelX = xgb.XGBRegressor()
+	modelX.load_model(filepath+f'bdtX_{file_num}_{model_loss}.json')
+	modelY = xgb.XGBRegressor()
+	modelY.load_model(filepath+f'bdtY_{file_num}_{model_loss}.json')
 
-	psi_rec = np.arctan2(Q_predicted[:,1],Q_predicted[:,0])
+	recX = modelX.predict(test_X.to_numpy(), iteration_range=(0, modelX.best_iteration))
+	recY = modelY.predict(test_X.to_numpy(), iteration_range=(0, modelY.best_iteration))
+	psi_rec = np.arctan2(recY, recX)
 	psi_gen = np.arctan2(Q_avg.iloc[:,1],Q_avg.iloc[:,0])
 
 	print(psi_gen)
