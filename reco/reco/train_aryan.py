@@ -4,14 +4,11 @@ from re import I
 import sys
 from pathlib import Path
 
-sys.path.append('/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/rpdreco/reco')
-
-
-import reco.lib.norm as norm
-import reco.lib.models as models
-import reco.lib.process as process
-import reco.lib.vis_mpl as vis_mpl
-import reco.lib.io as io
+import lib.norm as norm
+import lib.models as models
+import lib.process as process
+import lib.vis_mpl as vis_mpl
+import lib.io as io
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -38,9 +35,8 @@ if __name__ == '__main__':
 #    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
-    output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/"+scenario
-    data_file = "ACharge.pickle"
-#    data_file = "A.pickle"
+    output_path = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/"+scenario
+    data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA_nonlinearDigi.pickle"
     random_state = 42
     my_train_size = 0.8
     my_booster = 'dart' #pick between gbtree, gblinear, and dart
@@ -76,18 +72,20 @@ if __name__ == '__main__':
         test_X = test_A.iloc[:,6:22]
         test_X = scaler.transform(test_X)
     else:
-        train_X = train_A[:,6:22]
-        val_X = val_A[:,6:22]
-        test_X = test_A[:,6:22] 
+        train_X = train_A.iloc[:,6:22]
+        val_X = val_A.iloc[:,6:22]
+        test_X = test_A.iloc[:,6:22] 
 
-    if debug == True:
-        print("Saving Data Set")
     test_A.to_pickle(data_path + f'test_A.pickle')
     if do_z_norm:
         np.save(data_path + f'test_A_znorm.npy',test_X)
     
-    train_y = train_A.iloc[:,1:3]
-    val_y = val_A.iloc[:,1:3]
+    train_A = train_A.to_numpy()
+    val_A = val_A.to_numpy()    
+    test_A = test_A.to_numpy()
+
+    train_y = train_A[:,1:3]
+    val_y = val_A[:,1:3]
     if use_unit_vector:
         train_y = norm.get_unit_vector(train_y)
         val_y = norm.get_unit_vector(val_y)
@@ -100,10 +98,10 @@ if __name__ == '__main__':
         print(val_X)
         print(val_y)
 
-    train_y_x = train_y.iloc[:,0]
-    train_y_y = train_y.iloc[:,1]
-    val_y_x = val_y.iloc[:,0]
-    val_y_y = val_y.iloc[:,1]
+    train_y_x = train_y[:,0]
+    train_y_y = train_y[:,1]
+    val_y_x = val_y[:,0]
+    val_y_y = val_y[:,1]
 
     eval_setX = [(train_X, train_y_x), (val_X, val_y_x)]
     eval_setY = [(train_X, train_y_y), (val_X, val_y_y)]    
@@ -146,11 +144,11 @@ if __name__ == '__main__':
     val_mse = eval_result['validation_1']['rmse']
     epochs = range(1, len(train_mse) + 1)
 
-    Path(output_path + f'model{model_num}').mkdir(parents=True, exist_ok=True)
+    Path(output_path + f'{model_type}_model{model_num}').mkdir(parents=True, exist_ok=True)
     if make_two_train_samples:
-        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
+        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
     else:
-        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
+        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
 
     print('loss: ', np.min(train_mse))
     print('val loss:', np.min(val_mse))    
