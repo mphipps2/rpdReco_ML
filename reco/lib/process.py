@@ -24,7 +24,8 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.keras.models import load_model
 
 from tensorflow.python.client import device_lib
-
+from ROOT import *
+import math
 
 
 #import numpy as np
@@ -73,6 +74,20 @@ def GetPsiResidual_np(psi_true, psi_rec):
         psi_truth_res[psi_truth_res < -np.pi] += 2*np.pi 
         return psi_truth_res
 
+def GetPosResidual_np(Q_true, Q_rec):
+        pos_res = Q_true - Q_rec
+
+        return pos_res
+
+def GetPosResidual_mag_np(Q_true_x, Q_true_y, Q_rec_x, Q_rec_y):
+#        mag = pow(Q_true_x - Q_rec_x,2) + pow(Q_true_y - Q_rec_y,2)
+        mag = (Q_true_x - Q_rec_x) + (Q_true_y - Q_rec_y)
+        print ("mag type " , mag.dtype)
+#        pos_res = np.sqrt(mag)
+
+        return mag
+
+
 def reshape_signal(ary, normalization = False, flatten = False, padding = 1):
 
 #        print('ary before: ', ary)
@@ -116,9 +131,9 @@ def findCOM(rpd):
         return com
 
 def getCOMReactionPlane(com, centerX, centerY):
-	com.comY = com.comY-centerY
-	com.comX = com.comX-centerX
-	phi = np.arctan2(com.comY, com.comX)
+	com[:,1] = com[:,1]-centerY
+	com[:,0] = com[:,0]-centerX
+	phi = np.arctan2(com[:,1], com[:,0])
 	return phi
 
 
@@ -143,6 +158,8 @@ def findCOM_np (rpd):
 
                 com[:,0] += x*rpd[:,ch]
                 com[:,1] += y*rpd[:,ch]
+        np.seterr(divide='ignore', invalid='ignore')
+        
         com[:,0] /= total_signal
         com[:,1] /= total_signal
         print("com0 ", com[:,0], " com1 " , com[:,1], " total signal " , total_signal)

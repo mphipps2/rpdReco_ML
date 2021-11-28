@@ -54,20 +54,52 @@ def MakeTree_2(numParticles, pt_nuc, psi_res, b_name):
 #        numParticles.dtype = [('numParticles','int32')]
         numParticles.dtype = [('numParticles','float64')]
         pt_nuc.dtype = [('pt_nuclear','float64')]
-        print ("psi_res d type!!! ", psi_res.dtype)
+ #       print ("psi_res d type!!! ", psi_res.dtype)
+        print("psi res dtype " , psi_res.dtype)
+        print("Pre PSI_RES: " , psi_res)
         psi_res.dtype = [(b_name,'float64')]
+        print("post psi res dtype " , psi_res.dtype)
+        print("PSI_RES: " , psi_res)
 #        if "ensemble" in b_name:
 #               psi_res.dtype = [(b_name,'float32')]
 #        else:
                 
 
-        print ("numParticles type " , type(numParticles), " shape: " , numParticles.shape, " dtype " , numParticles.dtype, " dtypeNames " , numParticles.dtype.names, " dtypeFields " , numParticles.dtype.fields)
-        print("shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+#        print ("numParticles type " , type(numParticles), " shape: " , numParticles.shape, " dtype " , numParticles.dtype, " dtypeNames " , numParticles.dtype.names, " dtypeFields " , numParticles.dtype.fields)
+ #       print("shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+ 
         myTree = array2tree(numParticles)
         array2tree(pt_nuc, tree = myTree)
         array2tree(psi_res, tree = myTree)
         print('returning tree2')
         return myTree
+
+
+def MakeTree_2_cos(numParticles, pt_nuc, psi_res, b_name):
+        print("MakeTree_2 shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+#        numParticles.dtype = [('numParticles','int32')]
+        numParticles.dtype = [('numParticles','float64')]
+        pt_nuc.dtype = [('pt_nuclear','float64')]
+ #       print ("psi_res d type!!! ", psi_res.dtype)
+        print("psi res dtype " , psi_res.dtype)
+        print("Pre PSI_RES: " , psi_res)
+        psi_res.dtype = [(b_name,'float32')]
+        print("post psi res dtype " , psi_res.dtype)
+        print("PSI_RES: " , psi_res)
+#        if "ensemble" in b_name:
+#               psi_res.dtype = [(b_name,'float32')]
+#        else:
+                
+
+#        print ("numParticles type " , type(numParticles), " shape: " , numParticles.shape, " dtype " , numParticles.dtype, " dtypeNames " , numParticles.dtype.names, " dtypeFields " , numParticles.dtype.fields)
+ #       print("shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+ 
+        myTree = array2tree(numParticles)
+        array2tree(pt_nuc, tree = myTree)
+        array2tree(psi_res, tree = myTree)
+        print('returning tree2')
+        return myTree
+
 
 def MakeTree_2_predictions(numParticles, pt_nuc, psi_res, b_name):
         print("MakeTree_2 shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
@@ -99,17 +131,38 @@ def MakeTree_3(pt_nuc, psi_res, b_name):
         print('returning tree3')
         return myTree
 
-def MakeTree_4(truth_x, truth_y, psi_res, b_name):
+def MakeTree_4(truth_x, truth_y, psi_res, neutrons, pt_nuc, b_name):
+        print('truth_x dtype ' , truth_x.dtype)
         truth_x.dtype = [('truth_x','float64')]
         truth_y.dtype = [('truth_y','float64')]
         print ("psi_res d type!!! ", psi_res.dtype)
         psi_res.dtype = [(b_name,'float64')]
-
+        neutrons.dtype = [('neutrons','float64')]
+        pt_nuc.dtype = [('pt_nuc','float64')]
         myTree = array2tree(truth_x)
         array2tree(truth_y, tree = myTree)
         array2tree(psi_res, tree = myTree)
+        array2tree(neutrons, tree = myTree)
+        array2tree(pt_nuc, tree = myTree)
         print('returning tree4')
         return myTree
+
+def MakeTree_4_float32(truth_x, truth_y, psi_res, neutrons, pt_nuc, b_name):
+        print('truth_x dtype ' , truth_x.dtype)
+        truth_x.dtype = [('truth_x','float32')]
+        truth_y.dtype = [('truth_y','float32')]
+        print ("psi_res d type!!! ", psi_res.dtype)
+        psi_res.dtype = [(b_name,'float64')]
+        neutrons.dtype = [('neutrons','float64')]
+        pt_nuc.dtype = [('pt_nuc','float64')]
+        myTree = array2tree(truth_x)
+        array2tree(truth_y, tree = myTree)
+        array2tree(psi_res, tree = myTree)
+        array2tree(neutrons, tree = myTree)
+        array2tree(pt_nuc, tree = myTree)
+        print('returning tree4')
+        return myTree
+
 
 def MakeTree_5(truth_x, truth_y):
         truth_x.dtype = [('truth_x','float64')]
@@ -117,6 +170,37 @@ def MakeTree_5(truth_x, truth_y):
 
         myTree = array2tree(truth_x)
         array2tree(truth_y, tree = myTree)
+        return myTree
+
+def MakeTree_6(reco_x, reco_y):
+        reco_x.dtype = [('reco_x','float64')]
+        reco_y.dtype = [('reco_y','float64')]
+
+        myTree = array2tree(reco_x)
+        array2tree(reco_y, tree = myTree)
+        return myTree
+
+def MakeTree_6_float32(reco_x, reco_y):
+        reco_x.dtype = [('reco_x','float32')]
+        reco_y.dtype = [('reco_y','float32')]
+
+        myTree = array2tree(reco_x)
+        array2tree(reco_y, tree = myTree)
+        return myTree
+
+
+def MakeTree_7(reco_x, reco_y, psi_res, neutrons, pt_nuc, b_name):
+        reco_x.dtype = [('reco_x','float64')]
+        reco_y.dtype = [('reco_y','float64')]
+        print ("psi_res d type!!! ", psi_res.dtype)
+        psi_res.dtype = [(b_name,'float64')]
+        neutrons.dtype = [('neutrons','float64')]
+        pt_nuc.dtype = [('pt_nuc','float64')]
+        myTree = array2tree(reco_x)
+        array2tree(reco_y, tree = myTree)
+        array2tree(psi_res, tree = myTree)
+        array2tree(neutrons, tree = myTree)
+        array2tree(pt_nuc, tree = myTree)
         print('returning tree4')
         return myTree
 
