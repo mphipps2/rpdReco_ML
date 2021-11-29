@@ -133,7 +133,8 @@ def get_cnn_test():
 #    x = keras.models.Model(inputs=nNeutronInput, outputs=x)
 
     #input: (6,6), includes padding
-    signalInput = keras.Input(shape=(6,6,1), name = 'Subtracted RPD')
+#    signalInput = keras.Input(shape=(6,6,1), name = 'Subtracted RPD')
+    signalInput = keras.Input(shape=(4,4,1), name = 'Subtracted RPD')
     y = layers.Conv2D(filters = 64, kernel_size = (2,2), padding = 'Same', activation ='relu')(signalInput)
     y = layers.BatchNormalization()(y)
     y = layers.Conv2D(filters = 64, kernel_size = (2,2), padding = 'Same', activation ='relu')(y)
@@ -144,7 +145,7 @@ def get_cnn_test():
 #    y = layers.BatchNormalization()(y)
     y = layers.Flatten()(y)
     
-#    y = layers.Dense(32, activation = "relu")(y)
+    y = layers.Dense(32, activation = "relu")(y)
     y = layers.Dense(16, activation = "relu")(y)
     y = layers.Dense(8, activation = "relu")(y)
     Q_avg = layers.Dense(2, activation="tanh", name = 'Q_avg')(y)

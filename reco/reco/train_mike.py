@@ -21,42 +21,58 @@ import tensorflow.keras as keras
 from tensorflow.python.client import device_lib
 import tensorflow
 from sklearn.preprocessing import StandardScaler
+from keras import backend as K
+
+def root_mean_squared_error(y_true, y_pred):
+            return K.sqrt(K.mean(K.square(y_pred - y_true)))
+
 
 if __name__ == '__main__':
 
     debug = False
-    train_size = 0.8
-#    train_size = 0.025
-#    test_val_size = 0.05
-    test_val_size = 0.2
-    model_num = 500
+    train_size = 0.1
+    test_val_size = 0.9
+    val_size = 0.1
+    test_size = 0.9
+    model_num = 21
     model_type = "cnn"
+#    model_loss = "root_mean_squared_error"
     model_loss = "mse"
     use_neutrons = False
     use_unit_vector = True
     do_z_norm = False
     make_two_train_samples = False
     do_truth_pos_plot = True
-    do_unsubtracted_channel_plot = True
-    do_subtracted_channel_plot = True
+    do_reco_pos_plot = True
+    do_unsubtracted_channel_plot = False
+    do_subtracted_channel_plot = False
+    use_padding = True
     subtract = True
     two_trainer_ratio = 0.6
     two_trainer_filename = "40batch"
     scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
+#    scenario = "ToyFermi_qpFibers_LHC_noPedNoise/"
+#    scenario = "ToyFermi_mini_qpFibers_LHC_noPedNoise/"
 #    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/"+scenario
     data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA.pickle"
+    data_file_B = "ToyFermi_qqFibers_LHC_noPedNoiseB.pickle"
+    test_file = 'test_A_800k.pickle'
+    test_file_B = 'test_B_800k.pickle'
+#    data_file = "ToyFermi_qpFibers_LHC_noPedNoiseA.pickle"
+#    data_file = "ToyFermi_mini_qpFibers_LHC_noPedNoiseA.pickle"
 #    data_file = "A.pickle"
     random_state = 42
     my_batch_size = 2048
     my_epochs = 500
     my_optimizer = 'adam'
     my_metrics = ['mae','mse']
+    #my_metrics = [tensorflow.keras.metrics.RootMeanSquaredError(name='rmse')]
     my_monitor = 'val_loss'
     my_patience = 25
-    my_min_delta = 0.01
+    my_min_delta = 0.0001
 
     print("Tensorflow version: ", tensorflow.__version__)
     #print(device_lib.list_local_devices())
@@ -67,16 +83,26 @@ if __name__ == '__main__':
 
     A = io.get_dataset_peak(filename = data_path+data_file)
     A = A.drop_duplicates()
-
     A_np = A.to_numpy()
+
+    B = io.get_dataset_peak(filename = data_path+data_file_B)
+    B = B.drop_duplicates()
+    B_np = B.to_numpy()
+
+    
     if do_unsubtracted_channel_plot:
         vis_root.PlotUnsubtractedChannels(A_np[:,6:22], output_path)
     if do_truth_pos_plot:
         print("qx: ", A_np[:,1], "qy: ", A_np[:,2])
-        vis_root.PlotTruthPos(A_np[:,1], A_np[:,2], output_path)
-        
+        vis_root.PlotTruthPos(A_np[:,1], A_np[:,2], "genPos", output_path)        
     if subtract:
         A = process.subtract_signals_peak(A)
+        B = process.subtract_signals_peak(B)
+    if do_reco_pos_plot:
+        print("qx: ", A_np[:,6], "qy: ", A_np[:,21])
+        com_A = process.findCOM_np(A_np[:,6:22])
+        vis_root.PlotRecoPos(com_A[:,0], com_A[:,1], "com", output_path)
+
     if do_subtracted_channel_plot:
         vis_root.PlotSubtractedChannels(A_np[:,6:22], output_path)
 
@@ -87,8 +113,15 @@ if __name__ == '__main__':
 
     #using state 42 for verification purposes
     train_A, tmpA = train_test_split(A, test_size = test_val_size, train_size = train_size, random_state = random_state)
-    val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
+#    val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
+    val_A, test_A = train_test_split(tmpA, test_size = test_size, train_size = val_size, random_state = random_state)
 
+    train_B, tmpB = train_test_split(B, test_size = test_val_size, train_size = train_size, random_state = random_state)
+#    val_B, test_B = train_test_split(tmpB, train_size = 0.5, random_state = random_state)
+    val_B, test_B = train_test_split(tmpB, test_size = test_size, train_size = val_size, random_state = random_state)
+
+
+    
     if make_two_train_samples:
             train_A, train_B = train_test_split(train_A, test_size= 1.-two_trainer_ratio, random_state = random_state)
             val_A, val_B = train_test_split(val_A, test_size= 1.-0.5, random_state = random_state)
@@ -106,7 +139,8 @@ if __name__ == '__main__':
 
     if debug == True:
         print("Saving Data Set")
-    test_A.to_pickle(data_path + f'test_A.pickle')
+    test_A.to_pickle(data_path + test_file)
+    test_B.to_pickle(data_path + test_file_B)
     if do_z_norm:
         np.save(data_path + f'test_A_znorm.npy',test_X)
     
@@ -133,11 +167,17 @@ if __name__ == '__main__':
     if use_unit_vector:
         train_y = norm.get_unit_vector(train_y)
         val_y = norm.get_unit_vector(val_y)
-    
+
+    if do_truth_pos_plot:
+        vis_root.PlotTruthPos(train_y[:,0], train_y[:,1], "unitVec", output_path)        
     if model_type == 'cnn' or model_type == 'cnn_test':
         #reshape from (None, 16) to (None, 6, 6, 1)
-        train_X = process.reshape_signal(train_X)
-        val_X = process.reshape_signal(val_X)
+        if use_padding: 
+            train_X = process.reshape_signal(train_X)
+            val_X = process.reshape_signal(val_X)
+        else:
+            train_X = process.reshape_signal(train_X,normalization=False, flatten=False, padding = False)
+            val_X = process.reshape_signal(val_X,normalization=False, flatten=False, padding = False)
     if use_neutrons:
         train_X = {"neutron_branch": train_neutrons, 'rpd_branch': train_X}
         val_X = {"neutron_branch": val_neutrons, 'rpd_branch': val_X}
@@ -174,7 +214,8 @@ if __name__ == '__main__':
         print('unknown model (hint: use lower case)')
         
     model.summary()
-    model.compile(optimizer = my_optimizer, loss = model_loss, metrics=my_metrics)
+    model.compile(optimizer = my_optimizer, loss = tensorflow.keras.metrics.mean_squared_error, metrics=my_metrics)
+#    model.compile(optimizer = my_optimizer, loss = root_mean_squared_error, metrics=tensorflow.keras.metrics.RootMeanSquaredError(name='rmse'))
     early_stopping = keras.callbacks.EarlyStopping(min_delta = my_min_delta, patience = my_patience, monitor=my_monitor, restore_best_weights = True)
 
     print("Start Training:")
@@ -215,4 +256,5 @@ if __name__ == '__main__':
         vis_root.PlotTrainingComp(len(train_mae), train_mse, val_mse, model_loss, output_path+f'model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
     print('loss: ', np.min(train_mse))
     print('val loss:', np.min(val_mse))
+
 

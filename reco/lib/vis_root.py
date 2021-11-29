@@ -14,9 +14,9 @@ def PlotResiduals(psi_res, b_name, output_dir):
         h1 = gDirectory.Get('h1')
         print( "b_name type: ", type(b_name))
         if "gen" in b_name:
-                h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
         else:
-                h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
         h1.GetYaxis().SetTitle('Counts')
         h1.GetYaxis().SetTitleOffset(1.7)
         h1 = ops_root.GaussianFit(h1)
@@ -52,7 +52,7 @@ def PlotPredictionResiduals(psi_res, model_type, model_type_2, b_name, output_di
         tree.Draw(b_name + '>> h1')
         h1 = gDirectory.Get('h1')
 
-        h1.GetXaxis().SetTitle('\Psi_{0}^{CNN}-\Psi_{0}^{FCN}[rad]')
+        h1.GetXaxis().SetTitle('\Psi_{1}^{CNN}-\Psi_{1}^{FCN} [rad]')
         h1.GetYaxis().SetTitle('Counts')
         h1.GetYaxis().SetTitleOffset(1.7)
         h1 = ops_root.GaussianFit(h1)
@@ -92,7 +92,7 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
         ex = array('f',[])
         y = array('f',[])
         ey = array('f',[])
-
+        gStyle.SetPadRightMargin(0.1)
         n = len(groupLabels)
         colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
 
@@ -120,9 +120,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                         temp_h1 = gDirectory.Get('temp_h1')
                         
                         if "gen" in b_name:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                         else:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         temp_h1.GetYaxis().SetTitle('Counts')
 
                         temp_h1.Draw()
@@ -151,9 +151,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                         c2.SetFillColor(kWhite)
                         if save_residuals:
                                 if "gen" in b_name:
-                                        c2.SaveAs(output_dir+'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
+                                        c2.SaveAs(output_dir+f'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
                                 else:
-                                        c2.SaveAs(output_dir+'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
+                                        c2.SaveAs(output_dir+f'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
 
 
         mg = TMultiGraph()
@@ -176,9 +176,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                 mg.Add(tge)
 
         if "gen" in b_name:
-                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
+                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
         else:
-                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
+                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
         mg.GetXaxis().SetLimits(20.,40.)
         mg.GetYaxis().SetRangeUser(0,upperRange)
         mg.GetYaxis().SetLimits(0,upperRange)
@@ -204,6 +204,404 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                 c3.SaveAs(output_dir+f'NeutronDepResolution_{b_name}_A.png')
         else:
                 c3.SaveAs(output_dir+f'NeutronDepResolution_{b_name}_A.png')
+
+
+
+def PlotPosResiduals_neutron(numParticles, pt_nuc, pos_res, upperRange, b_name, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        groupLabels = [22.5, 27.5, 32.5, 37.5]
+        neutrons = [20, 25, 30, 35, 40]
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+#        print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+        tree = ops_root.MakeTree_2(numParticles, pt_nuc, pos_res, b_name)
+        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+        x = array('f',[])
+        ex = array('f',[])
+        y = array('f',[])
+        ey = array('f',[])
+        
+        gStyle.SetPadRightMargin(0.1)
+        n = len(groupLabels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+
+        for i in range(len(ptLabels)):
+                for j in range(len(groupLabels)):
+                        nBin = groupLabels[j]
+                        x.append(nBin)
+                        ex.append(0)
+                        lowPt = float(i*10 + 5)
+                        highPt = float(i*10 + 15)
+                        lowerNeutronCut = TCut(f'numParticles >= {nBin-2}')
+                        upperNeutronCut = TCut(f'numParticles < {nBin+3}')
+                        lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                        if highPt <= 45:
+                                upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                        else:
+                                upperPtCut = TCut('pt_nuclear < 100000')
+
+                        cut = lowerNeutronCut + upperNeutronCut + lowerPtCut + upperPtCut
+                        tree.Draw(b_name + ' >> temp_h1(60,-3,3)', cut)
+
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+
+                        temp_h1 = gDirectory.Get('temp_h1')
+                        
+                        if "qx" in b_name:
+                                temp_h1.GetXaxis().SetTitle('Q_{x}^{Gen-A}-Q_{x}^{Rec-A} [mm]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('Q_{y}^{Gen-A}-Q_{y}^{Rec-A} [mm]')
+                                
+                        temp_h1.GetYaxis().SetTitle('Counts')
+
+                        temp_h1.Draw()
+
+                        sigma, error = ops_root.GaussianFitGet(temp_h1,parameter)
+                        y.append(sigma)
+                        ey.append(error)
+                        print ("sigma ",sigma)
+                        text = TPaveText(0.65,0.65,0.9,0.9,"brNDC")
+                        if i == len(ptLabels)-1:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons}")
+                        else:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
+                        if j == len(groupLabels)-1:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                        else:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+
+                        text.SetFillStyle(0)
+                        text.SetLineColor(0)
+                        text.SetShadowColor(0)
+                        #                        text.SetBorderSize(1)
+ #                       text.SetFillColor(0)
+                        text.Draw()
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                c2.SaveAs(output_dir+f'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
+
+
+        mg = TMultiGraph()
+        
+        for i in range(len(ptLabels)):
+                color = colors[i]
+                tge = TGraphErrors(n, x[i*4:i*4+4], y[i*4:i*4+4], ex[i*4:i*4+4], ey[i*4:i*4+4])
+                tge.SetDrawOption('AP')
+
+                lowPt = i*10 + 5
+                highPt = i*10 + 15
+                tge.SetMarkerColor(color)
+                
+                if highPt < 55:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                else:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                tge.SetLineColor(color)
+                tge.SetMarkerStyle(21)
+                mg.Add(tge)
+
+        if "qx" in b_name:
+                mg.SetTitle(';N_{neutrons};\sigma_{Q_{x}^{Gen-A}-Q_{x}^{Rec-A}} [mm]')
+        else:
+                mg.SetTitle(';N_{neutrons};\sigma_{Q_{y}^{Gen-A}-Q_{y}^{Rec-A}} [mm]')
+        mg.GetXaxis().SetLimits(20.,40.)
+        mg.GetYaxis().SetRangeUser(0,upperRange)
+        mg.GetYaxis().SetLimits(0,upperRange)
+        
+        w = 750
+        h = 600
+
+        c3 = TCanvas('c3','c3', w, h)
+
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+
+        c3.cd()
+        mg.Draw('AP')
+        c3.BuildLegend (x1=0.55,y1=0.69,x2=0.88,y2=0.89).SetBorderSize(0)
+ 
+        for i in range(len(groupLabels)-1):
+                l1.DrawLine(25 + i*5, mg.GetYaxis().GetXmin(),25+i*5, mg.GetYaxis().GetXmax())
+        c3.cd()
+        c3.SetFillColor(kWhite)
+        c3.SaveAs(output_dir+f'NeutronDepResolution_{b_name}_A.png')
+
+
+
+
+
+
+
+
+def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_name, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        groupLabels = [22.5, 27.5, 32.5, 37.5]
+        neutrons = [20, 25, 30, 35, 40]
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+#        print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+        print ("k ", k , " psi_res_orig " , psi_res)
+        psi_res = np.cos(k*psi_res)
+        print("psi_cos_res: " , psi_res) 
+        tree = ops_root.MakeTree_2_cos(numParticles, pt_nuc, psi_res, b_name)
+        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+        x = array('f',[])
+        ex = array('f',[])
+        y = array('f',[])
+        ey = array('f',[])
+
+        n = len(groupLabels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+        
+        for i in range(len(ptLabels)):
+                for j in range(len(groupLabels)):
+                        nBin = groupLabels[j]
+                        x.append(nBin)
+                        ex.append(0)
+                        lowPt = float(i*10 + 5)
+                        highPt = float(i*10 + 15)
+                        lowerNeutronCut = TCut(f'numParticles >= {nBin-2}')
+                        upperNeutronCut = TCut(f'numParticles < {nBin+3}')
+                        lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                        if highPt <= 45:
+                                upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                        else:
+                                upperPtCut = TCut('pt_nuclear < 100000')
+
+                        cut = lowerNeutronCut + upperNeutronCut + lowerPtCut + upperPtCut
+                        tree.Draw(b_name + ' >> temp_h1(50,-1,1)', cut)
+
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+
+                        temp_h1 = gDirectory.Get('temp_h1')
+                        
+                        if k == 2:
+                                temp_h1.GetXaxis().SetTitle('cos2(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
+                        elif k == 3:
+                                temp_h1.GetXaxis().SetTitle('cos3(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
+                        elif k == 1:
+                                temp_h1.GetXaxis().SetTitle('cos(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
+
+                        temp_h1.GetYaxis().SetTitle('Counts')
+
+                        temp_h1.Draw()
+
+                        cos_mean = temp_h1.GetMean()
+                        cos_error = temp_h1.GetMeanError()
+                        multConst = sqrt(cos_mean) / cos_mean 
+                        print ("cos_mean ",cos_mean, " cos_error: " ,cos_error, "sqrt(cos_mean) ",sqrt(cos_mean), " sqrt(cos_error): " ,sqrt(cos_error), " multConst * cos_error: " , multConst * cos_error)
+                        y.append(sqrt(cos_mean))
+                        ey.append(cos_error*multConst)
+                        print ("cos_mean ",cos_mean)
+                        text = TPaveText(0.6,0.7,0.85,0.9,"brNDC")
+                        if i == len(ptLabels)-1:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons}")
+                        else:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
+                        if j == len(groupLabels)-1:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                        else:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+
+                        text.SetFillStyle(0)
+                        text.SetLineColor(0)
+                        text.SetShadowColor(0)
+                        #                        text.SetBorderSize(1)
+ #                       text.SetFillColor(0)
+                        text.Draw()
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                c2.SaveAs(output_dir+f'CosResidual_{b_name}_AC_k{k}_pt'+str(i)+'neutrons'+str(j)+'.png')
+
+        mg = TMultiGraph()
+        
+        for i in range(len(ptLabels)):
+                color = colors[i]
+                tge = TGraphErrors(n, x[i*4:i*4+4], y[i*4:i*4+4], ex[i*4:i*4+4], ey[i*4:i*4+4])
+                tge.SetDrawOption('AP')
+
+                lowPt = i*10 + 5
+                highPt = i*10 + 15
+                tge.SetMarkerColor(color)
+                
+                if highPt < 55:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                else:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                tge.SetLineColor(color)
+                tge.SetMarkerStyle(21)
+                mg.Add(tge)
+                if k==1:
+                        mg.SetTitle(';N_{neutrons};\sqrt{< cos(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+                elif k==2:
+                        mg.SetTitle(';N_{neutrons};\sqrt{< cos2(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+                elif k==3:
+                        mg.SetTitle(';N_{neutrons};\sqrt{< cos3(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+
+        mg.GetXaxis().SetLimits(20.,40.)
+        mg.GetYaxis().SetRangeUser(0,upperRange)
+        mg.GetYaxis().SetLimits(0,upperRange)
+        
+        w = 750
+        h = 600
+
+        c3 = TCanvas('c3','c3', w, h)
+
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+
+        c3.cd()
+        mg.Draw('AP')
+        c3.BuildLegend(x1=0.19,y1=0.71,x2=0.52,y2=0.93).SetBorderSize(0)
+ 
+        for i in range(len(groupLabels)-1):
+                l1.DrawLine(25 + i*5, mg.GetYaxis().GetXmin(),25+i*5, mg.GetYaxis().GetXmax())
+        c3.cd()
+        c3.SetFillColor(kWhite)
+
+        c3.SaveAs(output_dir+f'NeutronDepCosResolution_k{k}_{b_name}_A.png')
+
+
+
+
+
+
+
+
+
+def PlotSPResiduals_neutron(numParticles, pt_nuc, sp_QVec_rec_AB, upperRange, b_name, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        groupLabels = [22.5, 27.5, 32.5, 37.5]
+        neutrons = [20, 25, 30, 35, 40]
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+#        print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+
+
+        tree = ops_root.MakeTree_2_cos(numParticles, pt_nuc, sp_QVec_rec_AB, b_name)
+        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+        x = array('f',[])
+        ex = array('f',[])
+        y = array('f',[])
+        ey = array('f',[])
+
+        n = len(groupLabels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+        
+        for i in range(len(ptLabels)):
+                for j in range(len(groupLabels)):
+                        nBin = groupLabels[j]
+                        x.append(nBin)
+                        ex.append(0)
+                        lowPt = float(i*10 + 5)
+                        highPt = float(i*10 + 15)
+                        lowerNeutronCut = TCut(f'numParticles >= {nBin-2}')
+                        upperNeutronCut = TCut(f'numParticles < {nBin+3}')
+                        lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                        if highPt <= 45:
+                                upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                        else:
+                                upperPtCut = TCut('pt_nuclear < 100000')
+
+                        cut = lowerNeutronCut + upperNeutronCut + lowerPtCut + upperPtCut
+                        tree.Draw(b_name + ' >> temp_h1(200,-2,2)', cut)
+
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+
+                        temp_h1 = gDirectory.Get('temp_h1')
+                        
+
+                        temp_h1.GetXaxis().SetTitle('Q_{2}^{A}Q_{2}^{C}')
+
+                        temp_h1.GetYaxis().SetTitle('Counts')
+
+                        temp_h1.Draw()
+
+                        mean = temp_h1.GetMean()
+                        error = temp_h1.GetMeanError()
+                        multConst = sqrt(mean) / mean 
+                        y.append(sqrt(mean))
+                        ey.append(error*multConst)
+                        text = TPaveText(0.65,0.65,0.9,0.9,"brNDC")
+                        if i == len(ptLabels)-1:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons}")
+                        else:
+                                text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
+                        if j == len(groupLabels)-1:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                        else:
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+
+                        text.SetFillStyle(0)
+                        text.SetLineColor(0)
+                        text.SetShadowColor(0)
+                        #                        text.SetBorderSize(1)
+ #                       text.SetFillColor(0)
+                        text.Draw()
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                c2.SaveAs(output_dir+f'SPResidual_{b_name}_AC_pt'+str(i)+'neutrons'+str(j)+'.png')
+
+        mg = TMultiGraph()
+        
+        for i in range(len(ptLabels)):
+                color = colors[i]
+                tge = TGraphErrors(n, x[i*4:i*4+4], y[i*4:i*4+4], ex[i*4:i*4+4], ey[i*4:i*4+4])
+                tge.SetDrawOption('AP')
+
+                lowPt = i*10 + 5
+                highPt = i*10 + 15
+                tge.SetMarkerColor(color)
+                
+                if highPt < 55:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                else:
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                tge.SetLineColor(color)
+                tge.SetMarkerStyle(21)
+                mg.Add(tge)
+                mg.SetTitle(';N_{neutrons};\sqrt{< Q_{1}^{Rec-A} \cdot Q_{1}^{Rec-C} >}')
+
+        mg.GetXaxis().SetLimits(20.,40.)
+        mg.GetYaxis().SetRangeUser(0,upperRange)
+        mg.GetYaxis().SetLimits(0,upperRange)
+        
+        w = 750
+        h = 600
+
+        c3 = TCanvas('c3','c3', w, h)
+
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+
+        c3.cd()
+        mg.Draw('AP')
+        c3.BuildLegend(x1=0.2,y1=0.67,x2=0.49,y2=0.92).SetBorderSize(0)
+ 
+        for i in range(len(groupLabels)-1):
+                l1.DrawLine(25 + i*5, mg.GetYaxis().GetXmin(),25+i*5, mg.GetYaxis().GetXmax())
+        c3.cd()
+        c3.SetFillColor(kWhite)
+
+        c3.SaveAs(output_dir+f'NeutronDepSPResolution_{b_name}_AC.png')
 
 
 
@@ -252,9 +650,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
                 temp_h1 = gDirectory.Get('temp_h1')
                 
                 if is_gen:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                 else:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         
                 temp_h1.GetYaxis().SetTitle('Counts')
                 temp_h1.Draw()
@@ -268,9 +666,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
                 c2.SetFillColor(kWhite)
                 if save_residuals:
                         if is_gen:
-                                c2.SaveAs(output_dir+'Residual_gen_{b_name1}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name1}_A_pt'+str(i)+'.png')
                         else:
-                                c2.SaveAs(output_dir+'Residual_truth_{b_name1}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name1}_A_pt'+str(i)+'.png')
 
         for i in range(len(ptLabels)):
                 lowPt = float(i*10 + 5)
@@ -290,9 +688,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
                 temp_h2 = gDirectory.Get('temp_h2')
                 
                 if is_gen:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                 else:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         
                 temp_h2.GetYaxis().SetTitle('Counts')
                 temp_h2.Draw()
@@ -306,9 +704,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
                 c2.SetFillColor(kWhite)
                 if save_residuals:
                         if is_gen:
-                                c2.SaveAs(output_dir+'Residual_gen_{b_name2}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name2}_A_pt'+str(i)+'.png')
                         else:
-                                c2.SaveAs(output_dir+'Residual_truth_{b_name2}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name2}_A_pt'+str(i)+'.png')
 
 
         mg = TMultiGraph()
@@ -331,9 +729,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
         mg.Add(tge_2)
 
         if is_gen:
-                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
+                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
         else:
-                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
+                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
         mg.GetXaxis().SetLimits(5.,55)
         mg.GetYaxis().SetRangeUser(0,upperRange)
         mg.GetYaxis().SetLimits(0,upperRange)
@@ -375,7 +773,6 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
         group_labels = [10, 20, 30, 40, 50]
         ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
         parameter = 2
-        print("plotResiduals_neutron shape pt_nuc_A " , np.shape(pt_nuc))
         tree1 = ops_root.MakeTree_3(pt_nuc, psi_res_model1, b_name1)
         tree2 = ops_root.MakeTree_3(pt_nuc_2, psi_res_model2, b_name2)
         
@@ -413,9 +810,9 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 temp_h1 = gDirectory.Get('temp_h1')
                 
                 if is_gen:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                 else:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         
                 temp_h1.GetYaxis().SetTitle('Counts')
                 temp_h1.Draw()
@@ -423,15 +820,14 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 sigma, error = ops_root.GaussianFitGet(temp_h1,parameter)
                 y_1.append(sigma)
                 ey_1.append(error)
-                print ("sigma model 1: ",sigma)
 
                 c2.Modified()
                 c2.SetFillColor(kWhite)
                 if save_residuals:
                         if is_gen:
-                                c2.SaveAs(output_dir+'Residual_gen_{b_name1}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name1}_A_pt'+str(i)+'.png')
                         else:
-                                c2.SaveAs(output_dir+'Residual_truth_{b_name1}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name1}_A_pt'+str(i)+'.png')
 
         for i in range(len(ptLabels)):
                 lowPt = float(i*10 + 5)
@@ -451,9 +847,9 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 temp_h2 = gDirectory.Get('temp_h2')
                 
                 if is_gen:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                 else:
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         
                 temp_h2.GetYaxis().SetTitle('Counts')
                 temp_h2.Draw()
@@ -467,9 +863,9 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 c2.SetFillColor(kWhite)
                 if save_residuals:
                         if is_gen:
-                                c2.SaveAs(output_dir+'Residual_gen_{b_name2}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name2}_A_pt'+str(i)+'.png')
                         else:
-                                c2.SaveAs(output_dir+'Residual_truth_{b_name2}_A_pt'+str(i)+'.png')
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name2}_A_pt'+str(i)+'.png')
 
 
         c1 = TCanvas("c1", "c1", 550, 500)
@@ -485,9 +881,9 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 h2.SetBinError(i+1,ey_2[i])
 
         if is_gen:
-                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}} [rad]')
+                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
         else:
-                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}} [rad]')
+                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
 
         color = kBlue
 #        maxratio = 1.04
@@ -544,31 +940,40 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
 
 
 
-def PlotPositionRes(truth_x, truth_y, psi_res_model1, b_name1, output_dir, is_gen = True, save_residuals = False):
+def PlotPositionRes(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
         gROOT.SetStyle('ATLAS')
         bins = 100
-        #tile_size = 11.4
-        tile_size = 9.6
-        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
-        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        tile_size = 1.14
+        #tile_size = .96
+        truth_x /= 10
+        truth_y /= 10
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-9./8.)*tile_size,(-7./8.)*tile_size, (-5./8.)*tile_size, (-3./8.)*tile_size, (-1./8.)*tile_size, (1/8.)*tile_size, (3/8.)*tile_size, (5/8.)*tile_size, (7/8.)*tile_size, (9/8.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-1)*tile_size,(-6./8.)*tile_size,(-4./8.)*tile_size, (-2./8.)*tile_size, (0)*tile_size, (2./8.)*tile_size, (4./8.)*tile_size, (6./8.)*tile_size, (1.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
         print("plotPositionRes truth_x shape: ", np.shape(truth_x), " psi_res shape: ", np.shape(psi_res_model1))
-        tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, b_name1)
+        tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
         
-        val = np.zeros((5,5))
-        err = np.zeros((5,5))
+#        val = np.zeros((5,5))
+        val = np.zeros((9,9))
+#        err = np.zeros((5,5))
+        err = np.zeros((9,9))
 
 
         for x in range(len(pos_center)):
                 for y in range(len(pos_center)):
                         lowX = float(pos_range[x])                        
                         highX = float(pos_range[x+1])
-                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX}')
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
                         lowY = float(pos_range[y])
                         highY = float(pos_range[y+1])                                      
-                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY}')
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
                         cut = x_cut + y_cut
                         is_corner = 0
-                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
                                 is_corner = 1
                         if is_corner:
                                 tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
@@ -580,20 +985,24 @@ def PlotPositionRes(truth_x, truth_y, psi_res_model1, b_name1, output_dir, is_ge
                         temp_h1 = gDirectory.Get('temp_h1')
                 
                         if is_gen:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Gen-A}-\Psi_{0}^{Rec-A}[rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
                         else:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{0}^{Truth-A}-\Psi_{0}^{Rec-A}[rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
                         
                         temp_h1.GetYaxis().SetTitle('Counts')
                         temp_h1.Draw()
-
-                        sigma, error = ops_root.GaussianFitGet(temp_h1,2)
-                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+                        #sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        #if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
                                 sigma = 0
                                 error = 0
                         val[x,y] = sigma
                         err[x,y] = error
-                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+
 
                         c2.Modified()
                         c2.SetFillColor(kWhite)
@@ -602,9 +1011,9 @@ def PlotPositionRes(truth_x, truth_y, psi_res_model1, b_name1, output_dir, is_ge
                                         c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
                                 else:
                                         c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
-
+                                        
+        gStyle.SetPadRightMargin(0.15)
         c1 = TCanvas("c1", "c1", 550, 500)
-        gStyle.SetPadRightMargin(0.3)
         gStyle.SetOptStat(0)
         gStyle.SetErrorX(0)
 #        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
@@ -616,7 +1025,464 @@ def PlotPositionRes(truth_x, truth_y, psi_res_model1, b_name1, output_dir, is_ge
                         h1.SetBinContent(x+1,y+1,val[x][y])
                         h1.SetBinError(x+1,y+1,err[x][y])
 
-        h1.SetTitle(';x [mm];y [mm]')
+        h1.SetTitle(';x [cm];y [cm]')
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], h1.GetYaxis().GetXmin(), pos_center[0], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], h1.GetYaxis().GetXmin(), pos_center[4], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[8], h1.GetYaxis().GetXmin(), pos_center[8], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[0], h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[4], h1.GetXaxis().GetXmax(), pos_center[4])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[8], h1.GetXaxis().GetXmax(), pos_center[8])
+
+        c1.SaveAs(output_dir+f'positionRes_{b_name1}_.png')        
+
+
+
+
+
+
+
+
+
+
+def PlotFinePositionRes(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+        # reco has different units from gen
+        if "Gen" in b_name1:
+                truth_x /= 10
+                truth_y /= 10
+        
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-7./16.)*tile_size, (-5./16.)*tile_size, (-3./16.)*tile_size, (-1./16.)*tile_size, (1/16.)*tile_size, (3/16.)*tile_size, (5/16.)*tile_size, (7/16.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-3./8.)*tile_size,(-2./8.)*tile_size, (-1./8.)*tile_size, (0)*tile_size, (1./8.)*tile_size, (2./8.)*tile_size, (3./8.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " psi_res shape: ", np.shape(psi_res_model1))
+        if "Reco" in b_name1:
+                tree1 = ops_root.MakeTree_4_float32(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+        else:
+                tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((7,7))
+#        err = np.zeros((5,5))
+        err = np.zeros((7,7))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+                        if is_gen:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+                        #sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        #if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if is_gen:
+                                        c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.2)
+        c1 = TCanvas("c1", "c1", 650, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        h1.GetZaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+        h1.GetZaxis().SetTitleOffset(1.3)
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[3], h1.GetYaxis().GetXmin(), pos_center[3], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[3], h1.GetXaxis().GetXmax(), pos_center[3])
+
+        c1.SaveAs(output_dir+f'positionRes_{b_name1}_.png')        
+
+
+
+
+
+
+def PlotCenterTilesPositionRes(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+        # reco has different units from gen
+#        if "Gen" in b_name1:
+#                truth_x /= 10
+#                truth_y /= 10
+        
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-15./16.)*tile_size, (-13./16.)*tile_size,(-11./16.)*tile_size, (-9./16.)*tile_size, (-7./16.)*tile_size, (-5./16.)*tile_size, (-3./16.)*tile_size, (-1./16.)*tile_size, (1/16.)*tile_size, (3/16.)*tile_size, (5/16.)*tile_size, (7/16.)*tile_size, (9/16.)*tile_size, (11/16.)*tile_size, (13/16.)*tile_size, (15/16.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-7./8.)*tile_size,(-6./8.)*tile_size,(-5./8.)*tile_size,(-4./8.)*tile_size,(-3./8.)*tile_size,(-2./8.)*tile_size, (-1./8.)*tile_size, (0)*tile_size, (1./8.)*tile_size, (2./8.)*tile_size, (3./8.)*tile_size, (4./8.)*tile_size, (5./8.)*tile_size, (6./8.)*tile_size, (7./8.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " psi_res shape: ", np.shape(psi_res_model1))
+        if "Reco" in b_name1:
+                tree1 = ops_root.MakeTree_4_float32(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+        else:
+                tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((15,15))
+#        err = np.zeros((5,5))
+        err = np.zeros((15,15))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+                        if is_gen:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+                        #sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        #if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if is_gen:
+                                        c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.2)
+        c1 = TCanvas("c1", "c1", 650, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        h1.GetZaxis().SetTitle('\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]}')
+        h1.GetZaxis().SetTitleOffset(1.3)
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[7], h1.GetYaxis().GetXmin(), pos_center[7], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[7], h1.GetXaxis().GetXmax(), pos_center[7])
+
+        c1.SaveAs(output_dir+f'positionRes_{b_name1}_.png')        
+
+
+
+
+
+def PlotUpperTilesPositionRes(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+        # reco has different units from gen
+        if "Gen" in b_name1:
+                truth_x /= 10
+                truth_y /= 10
+        
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range_x = [(-15./16.)*tile_size, (-13./16.)*tile_size,(-11./16.)*tile_size, (-9./16.)*tile_size, (-7./16.)*tile_size, (-5./16.)*tile_size, (-3./16.)*tile_size, (-1./16.)*tile_size, (1/16.)*tile_size, (3/16.)*tile_size, (5/16.)*tile_size, (7/16.)*tile_size, (9/16.)*tile_size, (11/16.)*tile_size, (13/16.)*tile_size, (15/16.)*tile_size]
+        pos_center_x = [(-7./8.)*tile_size,(-6./8.)*tile_size,(-5./8.)*tile_size,(-4./8.)*tile_size,(-3./8.)*tile_size,(-2./8.)*tile_size, (-1./8.)*tile_size, (0)*tile_size, (1./8.)*tile_size, (2./8.)*tile_size, (3./8.)*tile_size, (4./8.)*tile_size, (5./8.)*tile_size, (6./8.)*tile_size, (7./8.)*tile_size]
+
+
+        pos_range_y = [(-5./16.)*tile_size,(-3./16.)*tile_size,(-1./16.)*tile_size,(1/16.)*tile_size, (3/16.)*tile_size,(5/16.)*tile_size, (7/16.)*tile_size, (9./16.)*tile_size, (11/16.)*tile_size, (13/16.)*tile_size, (15./16.)*tile_size, (17/16.)*tile_size, (19/16.)*tile_size, (21/16.)*tile_size, (23/16.)*tile_size, (25/16.)*tile_size]
+        pos_center_y = [(-2./8.)*tile_size,(-1./8.)*tile_size,(0./8.)*tile_size,(1./8.)*tile_size,(2./8.)*tile_size,(3./8.)*tile_size,(4./8.)*tile_size,(5./8.)*tile_size,(6./8.)*tile_size, (7./8.)*tile_size, (8./8.)*tile_size, (9./8.)*tile_size, (10./8.)*tile_size, (11./8.)*tile_size, (12./8.)*tile_size]
+        
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " psi_res shape: ", np.shape(psi_res_model1))
+        if "Reco" in b_name1:
+                tree1 = ops_root.MakeTree_4_float32(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+        else:
+                tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((15,15))
+#        err = np.zeros((5,5))
+        err = np.zeros((15,15))
+
+
+        for x in range(len(pos_center_x)):
+                for y in range(len(pos_center_x)):
+                        lowX = float(pos_range_x[x])                        
+                        highX = float(pos_range_x[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range_y[y])
+                        highY = float(pos_range_y[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+                        if is_gen:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+                        #sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        #if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if is_gen:
+                                        c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.2)
+        c1 = TCanvas("c1", "c1", 650, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center_x), pos_range_x[0], pos_range_x[len(pos_center_x)], len(pos_center_y), pos_range_y[0], pos_range_y[len(pos_center_y)])
+
+        for x in range(len(pos_center_x)):
+                for y in range(len(pos_center_x)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        h1.GetZaxis().SetTitle('\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]}')
+        h1.GetZaxis().SetTitleOffset(1.3)
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center_x[7], h1.GetYaxis().GetXmin(), pos_center_x[7], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center_y[2], h1.GetXaxis().GetXmax(), pos_center_y[2])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center_y[10], h1.GetXaxis().GetXmax(), pos_center_y[10])
+
+        c1.SaveAs(output_dir+f'positionRes_{b_name1}_.png')        
+
+
+        
+
+def PlotCoarsePositionRes(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+        truth_x /= 10
+        truth_y /= 10
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-9./4.)*tile_size,(-7./4.)*tile_size, (-5./4.)*tile_size, (-3./4.)*tile_size, (-1./4.)*tile_size, (1/4.)*tile_size, (3/4.)*tile_size, (5/4.)*tile_size, (7/4.)*tile_size, (9/4.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-8/4)*tile_size,(-6./4.)*tile_size,(-4./4.)*tile_size, (-2./4.)*tile_size, (0)*tile_size, (2./4.)*tile_size, (4./4.)*tile_size, (6./4.)*tile_size, (8./8.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " psi_res shape: ", np.shape(psi_res_model1))
+        tree1 = ops_root.MakeTree_4(truth_x, truth_y, psi_res_model1, neutrons, pt_nuc, b_name1)
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((9,9))
+#        err = np.zeros((5,5))
+        err = np.zeros((9,9))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+                        if is_gen:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+                        #sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        #if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if is_gen:
+                                        c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.15)
+        c1 = TCanvas("c1", "c1", 550, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
         gStyle.SetPalette(kTemperatureMap)
         h1.SetContour(99)
 #        gStyle.SetPalette(kBird)
@@ -629,36 +1495,475 @@ def PlotPositionRes(truth_x, truth_y, psi_res_model1, b_name1, output_dir, is_ge
         l1.DrawLine(pos_center[0], h1.GetYaxis().GetXmin(), pos_center[0], h1.GetYaxis().GetXmax())
         l1.DrawLine(pos_center[2], h1.GetYaxis().GetXmin(), pos_center[2], h1.GetYaxis().GetXmax())
         l1.DrawLine(pos_center[4], h1.GetYaxis().GetXmin(), pos_center[4], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[6], h1.GetYaxis().GetXmin(), pos_center[6], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[8], h1.GetYaxis().GetXmin(), pos_center[8], h1.GetYaxis().GetXmax())
         l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[0], h1.GetXaxis().GetXmax(), pos_center[0])
         l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[2], h1.GetXaxis().GetXmax(), pos_center[2])
         l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[4], h1.GetXaxis().GetXmax(), pos_center[4])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[6], h1.GetXaxis().GetXmax(), pos_center[6])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[8], h1.GetXaxis().GetXmax(), pos_center[8])
 
         c1.SaveAs(output_dir+f'positionRes_{b_name1}_.png')        
 
 
 
-def PlotTruthPos(truth_x, truth_y, output_dir):
-        gROOT.SetStyle('ATLAS')
 
+        
+
+def PlotQPositionRes(truth_x, truth_y, q_mag_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+ #       truth_x /= 10
+ #       truth_y /= 10
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-9./8.)*tile_size,(-7./8.)*tile_size, (-5./8.)*tile_size, (-3./8.)*tile_size, (-1./8.)*tile_size, (1/8.)*tile_size, (3/8.)*tile_size, (5/8.)*tile_size, (7/8.)*tile_size, (9/8.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-1)*tile_size,(-6./8.)*tile_size,(-4./8.)*tile_size, (-2./8.)*tile_size, (0)*tile_size, (2./8.)*tile_size, (4./8.)*tile_size, (6./8.)*tile_size, (1.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " q_mag shape: ", np.shape(q_mag_model1))
+        q_mag_model1_inv = -1 * q_mag_model1
+        tree1 = ops_root.MakeTree_4(truth_x, truth_y, q_mag_model1, neutrons, pt_nuc, b_name1)
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((9,9))
+#        err = np.zeros((5,5))
+        err = np.zeros((9,9))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(60,-3,3)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(60,-3,3)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+                        sigma = temp_h1.GetRMS()
+                        error = temp_h1.GetRMSError()
+#                        sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+#                        if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                        if math.isnan(sigma):
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                c2.SaveAs(output_dir+'Residual_gen_qMag_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.15)
+        c1 = TCanvas("c1", "c1", 550, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], h1.GetYaxis().GetXmin(), pos_center[0], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], h1.GetYaxis().GetXmin(), pos_center[4], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[8], h1.GetYaxis().GetXmin(), pos_center[8], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[0], h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[4], h1.GetXaxis().GetXmax(), pos_center[4])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[8], h1.GetXaxis().GetXmax(), pos_center[8])
+
+        c1.SaveAs(output_dir+f'positionRes_qMag_{b_name1}_.png')        
+
+
+
+
+
+def PlotQPos1dRes(truth_x, truth_y, q_res, neutrons, pt_nuc, b_name1, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+ #       truth_x /= 10
+ #       truth_y /= 10
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-9./8.)*tile_size,(-7./8.)*tile_size, (-5./8.)*tile_size, (-3./8.)*tile_size, (-1./8.)*tile_size, (1/8.)*tile_size, (3/8.)*tile_size, (5/8.)*tile_size, (7/8.)*tile_size, (9/8.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-1)*tile_size,(-6./8.)*tile_size,(-4./8.)*tile_size, (-2./8.)*tile_size, (0)*tile_size, (2./8.)*tile_size, (4./8.)*tile_size, (6./8.)*tile_size, (1.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes truth_x shape: ", np.shape(truth_x), " q_mag shape: ", np.shape(q_res))
+
+        tree1 = ops_root.MakeTree_4(truth_x, truth_y, q_res, neutrons, pt_nuc, b_name1)
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((9,9))
+#        err = np.zeros((5,5))
+        err = np.zeros((9,9))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'truth_x > {lowX} && truth_x <= {highX} && neutrons > 20 && pt_nuc > 30')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'truth_y > {lowY} && truth_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(60,-3,3)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(60,-3,3)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+
+                        sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+                        if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 6 or y == 7 or y == 8:
+                                sigma = 0
+                                error = 0
+                        val[x,y] = sigma
+                        err[x,y] = error
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if "qx" in b_name1:
+                                        c2.SaveAs(output_dir+'Residual_gen_qx_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_gen_qy_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+        gStyle.SetPadRightMargin(0.15)
+        c1 = TCanvas("c1", "c1", 550, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], h1.GetYaxis().GetXmin(), pos_center[0], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], h1.GetYaxis().GetXmin(), pos_center[4], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[8], h1.GetYaxis().GetXmin(), pos_center[8], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[0], h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[4], h1.GetXaxis().GetXmax(), pos_center[4])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[8], h1.GetXaxis().GetXmax(), pos_center[8])
+        if "qx" in b_name1:
+                c1.SaveAs(output_dir+f'positionRes_qx_{b_name1}_.png')        
+        else:
+                c1.SaveAs(output_dir+f'positionRes_qy_{b_name1}_.png')        
+
+
+
+        
+
+
+def PlotPositionRes_reco(reco_x, reco_y, psi_res_model1, neutrons, pt_nuc, b_name1, output_dir, is_gen = True, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        tile_size = 1.14
+        #tile_size = .96
+
+#        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_range = [(-9./8.)*tile_size,(-7./8.)*tile_size, (-5./8.)*tile_size, (-3./8.)*tile_size, (-1./8.)*tile_size, (1/8.)*tile_size, (3/8.)*tile_size, (5/8.)*tile_size, (7/8.)*tile_size, (9/8.)*tile_size]
+#        pos_center = [(-1)*tile_size, (-0.5)*tile_size, (0)*tile_size, (0.5)*tile_size, (1)*tile_size]
+        pos_center = [(-1)*tile_size,(-6./8.)*tile_size,(-4./8.)*tile_size, (-2./8.)*tile_size, (0)*tile_size, (2./8.)*tile_size, (4./8.)*tile_size, (6./8.)*tile_size, (1.)*tile_size]
+#        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        pos_center2 = [(-2)*tile_size, (-1)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        print("plotPositionRes reco_x shape: ", np.shape(reco_x), " psi_res shape: ", np.shape(psi_res_model1))
+        tree1 = ops_root.MakeTree_7(reco_x, reco_y, psi_res_model1, neutrons, pt_nuc,  b_name1)
+        
+#        val = np.zeros((5,5))
+        val = np.zeros((9,9))
+#        err = np.zeros((5,5))
+        err = np.zeros((9,9))
+
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        lowX = float(pos_range[x])                        
+                        highX = float(pos_range[x+1])
+                        x_cut = TCut(f'reco_x > {lowX} && reco_x <= {highX} && neutrons > 20 && pt_nuc > 30 ')
+                        lowY = float(pos_range[y])
+                        highY = float(pos_range[y+1])                                      
+                        y_cut = TCut(f'reco_y > {lowY} && reco_y <= {highY} && neutrons > 20 && pt_nuc > 30')
+                        cut = x_cut + y_cut
+                        is_corner = 0
+#                        if (x == 1 and y == 1) or (x == 1 and y == 3) or (x == 3 and y == 1) or (x == 3 and y == 3):
+                        if (x == 1 and y == 1) or (x == 1 and y == 5) or (x == 5 and y == 1) or (x == 5 and y == 5):
+                                is_corner = 1
+                        if is_corner:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        else:
+                                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                        c2 = TCanvas('c2','c2', 750,  600)
+                        c2.cd()
+                        print("x_cut: ", x_cut, " y_cut: ", y_cut)
+                        temp_h1 = gDirectory.Get('temp_h1')
+                
+                        if is_gen:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                        else:
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                        temp_h1.GetYaxis().SetTitle('Counts')
+                        temp_h1.Draw()
+
+                        sigma, error = ops_root.GaussianFitGet(temp_h1,2)
+                        if math.isnan(sigma) or x == 0 or x == 1 or x == 2 or x == 6 or x == 7 or x == 8 or y == 0 or y == 1 or y == 2 or y == 3 or y == 4 :
+                                sigma = 0
+                                error = 0
+#                        if math.isnan(sigma) or x == 0 or x == 4 or y == 0 or y == 4:
+
+
+                        val[x,y] = sigma
+                        err[x,y] = error
+                        print ("x: ", x , " y: ", y , " sigma: ",sigma, " hRms ", temp_h1.GetRMS())
+
+                        c2.Modified()
+                        c2.SetFillColor(kWhite)
+                        if save_residuals:
+                                if is_gen:
+                                        c2.SaveAs(output_dir+'Residual_gen_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                else:
+                                        c2.SaveAs(output_dir+'Residual_truth_posx'+str(x)+'_posy'+str(y)+f'_{b_name1}.png')
+                                        
+        gStyle.SetPadRightMargin(0.20)
+        c1 = TCanvas("c1", "c1", 600, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+#        h1 = TH2D(b_name1+" model", b_name1+" model", 5, pos_range[0], pos_range[2], 3, pos_range[0], pos_range[2])
+        h1 = TH2D(b_name1+" model", b_name1+" model", len(pos_center), pos_range[0], pos_range[len(pos_center)], len(pos_center), pos_range[0], pos_range[len(pos_center)])
+
+        for x in range(len(pos_center)):
+                for y in range(len(pos_center)):
+                        print("x: ", x, " y: ", y, " val: ", val[x][y], " err: ", err[x][y])
+                        h1.SetBinContent(x+1,y+1,val[x][y])
+                        h1.SetBinError(x+1,y+1,err[x][y])
+
+        h1.SetTitle(';x [cm];y [cm]')
+        h1.GetZaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+        h1.GetZaxis().SetTitleOffset(1.25)
+        gStyle.SetPalette(kTemperatureMap)
+        h1.SetContour(99)
+#        gStyle.SetPalette(kBird)
+#        gStyle.SetPalette(kViridis)
+        h1.Draw("colz")
+        c1.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], h1.GetYaxis().GetXmin(), pos_center[0], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], h1.GetYaxis().GetXmin(), pos_center[4], h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[8], h1.GetYaxis().GetXmin(), pos_center[8], h1.GetYaxis().GetXmax())
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[0], h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[4], h1.GetXaxis().GetXmax(), pos_center[4])
+        l1.DrawLine(h1.GetXaxis().GetXmin(),pos_center[8], h1.GetXaxis().GetXmax(), pos_center[8])
+
+        c1.SaveAs(output_dir+f'positionRes_reco_{b_name1}_.png')        
+
+
+        
+
+def PlotTruthPos(truth_x, truth_y, tag, output_dir):
+        gROOT.SetStyle('ATLAS')
+        if "gen" in tag:
+                truth_x /= 10
+                truth_y /= 10
+
+        tile_size = 1.14
+#        tile_size = 0.57
+        #tile_size = 0.96
+        pos_center = [(-2.)*tile_size,(-1.)*tile_size, (0)*tile_size, (1.)*tile_size,(2.)*tile_size]
+        
         tree1 = ops_root.MakeTree_5(truth_x, truth_y)
 
         gStyle.SetPadRightMargin(0.2)
-        tree1.Draw('truth_x:truth_y >> temp_h1(50,-TMath::Pi,TMath::Pi)',"","colz")
+#        tree1.Draw('truth_x:truth_y >> temp_h1(50,-TMath::Pi,TMath::Pi)',"","colz")
+        tree1.Draw('truth_y:truth_x >> temp_h1(200,-2.28,2.28,200,-2.28,2.28)',"","colz")
+#        tree1.Draw('truth_y:truth_x >> temp_h1(200,-1.14,1.14,200,-1.14,1.14)',"","colz")
+        c2 = TCanvas('c2','c2', 650, 500)
+        c2.cd()
+        temp_h1 = gDirectory.Get('temp_h1')
+        
+        temp_h1.GetXaxis().SetTitle('x [cm]')
+        temp_h1.GetYaxis().SetTitle('y [cm]')
+        temp_h1.GetZaxis().SetTitle('Events')
+        temp_h1.GetZaxis().SetTitleOffset(1.3)
+        temp_h1.GetXaxis().SetRangeUser(-20,20)
+        temp_h1.GetYaxis().SetRangeUser(-20,20)
+        gStyle.SetPalette(kBird)
+        temp_h1.SetContour(99)
+        temp_h1.Draw("colz")
+        c2.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], temp_h1.GetYaxis().GetXmin(), pos_center[0], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[1], temp_h1.GetYaxis().GetXmin(), pos_center[1], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[2], temp_h1.GetYaxis().GetXmin(), pos_center[2], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[3], temp_h1.GetYaxis().GetXmin(), pos_center[3], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], temp_h1.GetYaxis().GetXmin(), pos_center[4], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[0], temp_h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[1], temp_h1.GetXaxis().GetXmax(), pos_center[1])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[2], temp_h1.GetXaxis().GetXmax(), pos_center[2])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[3], temp_h1.GetXaxis().GetXmax(), pos_center[3])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[4], temp_h1.GetXaxis().GetXmax(), pos_center[4])
+
+        c2.SaveAs(output_dir+'TruthPos_'+tag+'.png')
+
+def PlotTruthPos2(truth_x, truth_y, output_dir):
+        gROOT.SetStyle('ATLAS')
+
+        tile_size = 1.14
+        #tile_size = 0.96
+        pos_range = [(-5./4.)*tile_size,(-3./4.)*tile_size, (-1./4.)*tile_size, (1./4.)*tile_size, (3./4.)*tile_size, (5./4.)*tile_size]
+        pos_center = [(-2)*tile_size, (-1.)*tile_size, (0)*tile_size, (1.)*tile_size, (2.)*tile_size]
+        
+        tree1 = ops_root.MakeTree_5(truth_x, truth_y)
+
+        gStyle.SetPadRightMargin(0.2)
+#        tree1.Draw('truth_x:truth_y >> temp_h1(50,-TMath::Pi,TMath::Pi)',"","colz")
+        tree1.Draw('truth_y:truth_x >> temp_h1(200,-2.28,2.28,200,-2.28,2.28)',"","colz")
         c2 = TCanvas('c2','c2', 750,  600)
         c2.cd()
         temp_h1 = gDirectory.Get('temp_h1')
         
-        temp_h1.GetXaxis().SetTitle('x [mm]')
-        temp_h1.GetYaxis().SetTitle('y [mm]')
+        temp_h1.GetXaxis().SetTitle('x [cm]')
+        temp_h1.GetYaxis().SetTitle('y [cm]')
+        temp_h1.GetXaxis().SetRangeUser(-20,20)
+        temp_h1.GetYaxis().SetRangeUser(-20,20)
         gStyle.SetPalette(kBird)
         temp_h1.SetContour(99)
         temp_h1.Draw("colz")
+        c2.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[1], temp_h1.GetYaxis().GetXmin(), pos_center[1], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[2], temp_h1.GetYaxis().GetXmin(), pos_center[2], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[3], temp_h1.GetYaxis().GetXmin(), pos_center[3], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[1], temp_h1.GetXaxis().GetXmax(), pos_center[1])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[2], temp_h1.GetXaxis().GetXmax(), pos_center[2])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[3], temp_h1.GetXaxis().GetXmax(), pos_center[3])
+
         c2.SaveAs(output_dir+'TruthPos.png')
+
         
+def PlotRecoPos(reco_x, reco_y, tag, output_dir):
+        gROOT.SetStyle('ATLAS')
+        
+        tile_size = 1.14
+#        tile_size = 0.57
+        #tile_size = 0.96
+
+#        pos_center = [(-1.)*tile_size, (0)*tile_size, (1.)*tile_size]
+        pos_center = [(-2.)*tile_size,(-1.)*tile_size, (0)*tile_size, (1.)*tile_size,(2.)*tile_size]
+
+        if "pred" in tag:
+                tree1 = ops_root.MakeTree_6_float32(reco_x, reco_y)
+        else:
+                tree1 = ops_root.MakeTree_6(reco_x, reco_y)
+        gStyle.SetPadRightMargin(0.2)
+#        tree1.Draw('reco_x:reco_y >> temp_h1(50,-TMath::Pi,TMath::Pi)',"","colz")
+        tree1.Draw('reco_y:reco_x >> temp_h1(200,-2.28,2.28,200,-2.28,2.28)',"","colz")
+#        tree1.Draw('reco_y:reco_x >> temp_h1(200,-1.14,1.14,200,-1.14,1.14)',"","colz")
+        c2 = TCanvas('c2','c2', 650, 500)
+        c2.cd()
+        temp_h1 = gDirectory.Get('temp_h1')
+        
+        temp_h1.GetXaxis().SetTitle('x [cm]')
+        temp_h1.GetYaxis().SetTitle('y [cm]')
+        temp_h1.GetZaxis().SetTitle('Events')
+        temp_h1.GetZaxis().SetTitleOffset(1.3)
+        gStyle.SetPalette(kBird)
+        temp_h1.SetContour(99)
+        temp_h1.Draw("colz")
+        c2.Update()
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        l1.DrawLine(pos_center[0], temp_h1.GetYaxis().GetXmin(), pos_center[0], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[1], temp_h1.GetYaxis().GetXmin(), pos_center[1], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[2], temp_h1.GetYaxis().GetXmin(), pos_center[2], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[3], temp_h1.GetYaxis().GetXmin(), pos_center[3], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(pos_center[4], temp_h1.GetYaxis().GetXmin(), pos_center[4], temp_h1.GetYaxis().GetXmax())
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[0], temp_h1.GetXaxis().GetXmax(), pos_center[0])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[1], temp_h1.GetXaxis().GetXmax(), pos_center[1])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[2], temp_h1.GetXaxis().GetXmax(), pos_center[2])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[3], temp_h1.GetXaxis().GetXmax(), pos_center[3])
+        l1.DrawLine(temp_h1.GetXaxis().GetXmin(),pos_center[4], temp_h1.GetXaxis().GetXmax(), pos_center[4])
+
+        c2.SaveAs(output_dir+'RecoPos_'+tag+'.png')
+
 def PlotSubtractedChannels(rpd_signal, output_dir):
         gROOT.SetStyle('ATLAS')
         gStyle.SetPadRightMargin(0.2)
-        h1 = TH2D("SubtractedChannels_allEvents", "SubtractedChannels_allEvents", 4,-2,2,4,-2,2)
+        tile_size = 0.57
+#        h1 = TH2D("SubtractedChannels_allEvents", "SubtractedChannels_allEvents", 4,-2,2,4,-2,2)
+        h1 = TH2D("SubtractedChannels_allEvents", "SubtractedChannels_allEvents", 4,-1*tile_size*2,tile_size*2,4,-1*tile_size*2,tile_size*2)
         c2 = TCanvas('c2','c2', 750,  600)
         c2.cd()
         for val in range(np.size(rpd_signal,0)):
@@ -666,21 +1971,21 @@ def PlotSubtractedChannels(rpd_signal, output_dir):
                         x = 0
                         y = 0
                         if ch < 4:
-                                y = 1.5
+                                y = tile_size+(tile_size/2)
                         elif ch >= 4 and ch < 8:
-                                y = 0.5
+                                y = (tile_size/2)
                         elif ch >= 8 and ch < 12:
-                                y = -0.5
+                                y = -1 * (tile_size/2)
                         else:
-                                y = -1.5
+                                y = -1 * (tile_size+(tile_size/2))
                         if ch % 4 == 0:
-                                x = 1.5
+                                x = tile_size+(tile_size/2)
                         elif ch % 4 == 1:
-                                x = 0.5
+                                x = (tile_size/2)
                         elif ch % 4 == 2:
-                                x = -0.5
+                                x = -1 * (tile_size/2)
                         elif ch % 4 == 3:
-                                x = -1.5
+                                x = -1 * (tile_size+(tile_size/2))
                         h1.Fill(x,y,rpd_signal[val,ch])
         h1.Scale(1./np.size(rpd_signal,0))
         com = np.zeros((1,2))
@@ -689,15 +1994,15 @@ def PlotSubtractedChannels(rpd_signal, output_dir):
                 for j in range(4):
                         x = 0
                         y = 0
-                        if i == 0: y = -1.5
-                        elif (i == 1): y = -0.5
-                        elif (i == 2): y = 0.5
-                        else: y = 1.5
+                        if i == 0: y = -1 * (tile_size+(tile_size/2))
+                        elif (i == 1): y = -1 * (tile_size/2)
+                        elif (i == 2): y = (tile_size/2)
+                        else: y = tile_size+(tile_size/2)
                         
-                        if j == 0: x = -1.5
-                        elif j == 1: x = -0.5
-                        elif j == 2: x = 0.5
-                        elif j == 3: x = 1.5
+                        if j == 0: x = -1 * (tile_size+(tile_size/2))
+                        elif j == 1: x = -1 * (tile_size/2)
+                        elif j == 2: x = (tile_size/2)
+                        elif j == 3: x = tile_size+(tile_size/2)
                         
                         com[:,0] += x*h1.GetBinContent(j+1,i+1)
                         com[:,1] += y*h1.GetBinContent(j+1,i+1)
@@ -706,8 +2011,8 @@ def PlotSubtractedChannels(rpd_signal, output_dir):
         com[:,1] /= total_signal
         print("com0 ", com[:,0], " com1 " , com[:,1], " total signal " , total_signal)
 
-        h1.GetXaxis().SetTitle('Tile Pos x')
-        h1.GetYaxis().SetTitle('Tile Pos y')
+        h1.GetXaxis().SetTitle('x [cm]')
+        h1.GetYaxis().SetTitle('y [cm]')
         gStyle.SetPalette(kBird)
         h1.SetContour(99)
         h1.Draw("colz")
@@ -721,16 +2026,17 @@ def PlotSubtractedChannels(rpd_signal, output_dir):
         tex.SetTextFont(43);
         tex.SetTextSize(21);
         tex.SetLineWidth(2);
-        com_x = float('%.2g' % com[:,0])
-        com_y = float('%.2g' % com[:,1])
-        tex.DrawLatex(0.35,0.56,'CoM: ('+str(com_x)+', '+str(com_y)+')' );
+        com_x = float('%.1g' % com[:,0])
+        com_y = float('%.3g' % com[:,1])
+        tex.DrawLatex(0.35,0.61,'CoM: ('+str(com_x)+', '+str(com_y)+')' );
 
         c2.SaveAs(output_dir+'SubtractedChannels.png')
         
 def PlotUnsubtractedChannels(rpd_signal, output_dir):
         gROOT.SetStyle('ATLAS')
         gStyle.SetPadRightMargin(0.2)
-        h1 = TH2D("UnsubtractedChannels_allEvents", "UnsubtractedChannels_allEvents", 4,-2,2,4,-2,2)
+        tile_size = 0.57
+        h1 = TH2D("UnsubtractedChannels_allEvents", "UnsubtractedChannels_allEvents", 4,-1*tile_size*2,tile_size*2,4,-1*tile_size*2,tile_size*2)
         c2 = TCanvas('c2','c2', 750,  600)
         c2.cd()
         for val in range(np.size(rpd_signal,0)):
@@ -738,21 +2044,21 @@ def PlotUnsubtractedChannels(rpd_signal, output_dir):
                         x = 0
                         y = 0
                         if ch < 4:
-                                y = 1.5
+                                y = tile_size+(tile_size/2)
                         elif ch >= 4 and ch < 8:
-                                y = 0.5
+                                y = (tile_size/2)
                         elif ch >= 8 and ch < 12:
-                                y = -0.5
+                                y = -1 * (tile_size/2)
                         else:
-                                y = -1.5
+                                y = -1 * (tile_size+(tile_size/2))
                         if ch % 4 == 0:
-                                x = 1.5
+                                x = tile_size+(tile_size/2)
                         elif ch % 4 == 1:
-                                x = 0.5
+                                x = (tile_size/2)
                         elif ch % 4 == 2:
-                                x = -0.5
+                                x = -1 * (tile_size/2)
                         elif ch % 4 == 3:
-                                x = -1.5
+                                x = -1 * (tile_size+(tile_size/2))
                         h1.Fill(x,y,rpd_signal[val,ch])
         h1.Scale(1./np.size(rpd_signal,0))
         h1.GetXaxis().SetTitle('Tile Pos x')
@@ -808,7 +2114,7 @@ def PlotPredictionResiduals_neutron(numParticles, pt_nuc, psi_res, model_type, m
 
                         temp_h1 = gDirectory.Get('temp_h1')
                         
-                        temp_h1.GetXaxis().SetTitle('\Psi_{0}^{CNN}-\Psi_{0}^{FCN}[rad]')
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{CNN}-\Psi_{1}^{FCN} [rad]')
 
                         temp_h1.GetYaxis().SetTitle('Counts')
 
@@ -860,7 +2166,7 @@ def PlotPredictionResiduals_neutron(numParticles, pt_nuc, psi_res, model_type, m
                 mg.Add(tge)
 
 
-        mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{0}^{CNN}-\Psi_{0}^{FCN}} [rad]')
+        mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{CNN}-\Psi_{1}^{FCN}} [rad]')
 
         mg.GetXaxis().SetLimits(20.,40.)
         mg.GetYaxis().SetRangeUser(0,upperRange)
