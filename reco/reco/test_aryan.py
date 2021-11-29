@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 import lib.norm as norm
 import lib.models as models
@@ -19,7 +20,7 @@ if __name__ == '__main__':
     model_loss = "rmse"
     model_num = 1
     model_type = "bdt"
-    model_type_1_label = "bdt_qqFibers"
+    model_type_1_label = "bdt_800k"
     com_label = "com_qqFibers"
     use_neutrons = False
     do_com = False
@@ -30,9 +31,9 @@ if __name__ == '__main__':
     two_trainer_filename = "40batch"
     do_model_residuals = True
     model_type_2 = "cnn"
-    model_type_2_label = "cnn_qqFibers"
-    model_num_2 = 500
-    model_loss_2 = "mse"
+    model_type_2_label = "cnn_200k"
+    model_num_2 = 1
+    model_loss_2 = "rmse"
     model_2_is_qRod = False
     model_2_is_qq = True
     do_position_resolution = True
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     do_subtracted_channel_plot = False
     do_z_norm_2 = False
     use_neutrons_2 = False
-    do_ensemble_avg = False
+    do_ensemble_avg = True
     do_ratio_plot_ptnuc = True
     scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
     scenario_2 = "ToyFermi_qqFibers_LHC_noPedNoise/"
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     data_file = "test_A.pickle"
     data_znorm = "test_A_znorm.npy"
     output_path = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/" + scenario + "Model" + str(model_num) + "/"
-    upperRange_gen = 1.4
+    upperRange_gen = 0.95
     upperRange_truth = 2.5
     upperRange_predictionRes = 0.5
     # vertical offset in orginal data
@@ -61,9 +62,9 @@ if __name__ == '__main__':
     if do_small_batch:
             
         modelX = xgb.XGBRegressor()
-        modelX.load_model(model_path + f'bdtX{model_type}_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.h5')
+        modelX.load_model(model_path + f'bdtX_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.json')
         modelY = xgb.XGBRegressor()
-        modelY.load_model(model_path + f'bdtY{model_type}_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.h5')
+        modelY.load_model(model_path + f'bdtY_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.json')
     else:
         modelX = xgb.XGBRegressor()
         modelX.load_model(model_path+f'bdtX_{model_num}_{model_loss}.json')
@@ -95,10 +96,13 @@ if __name__ == '__main__':
 
     psi_gen_A = np.arctan2(Q_avg_A[:,1],Q_avg_A[:,0])
 
+    start = time.time()
     recX = modelX.predict(test_X_A, iteration_range=(0, modelX.best_iteration))
     recY = modelY.predict(test_X_A, iteration_range=(0, modelY.best_iteration))
     Q_predicted_A = np.transpose(np.array([recX,recY]))
-
+    end = time.time()
+    print(f"Prediction Time: {end-start}")
+    
     psi_rec_A = np.arctan2(Q_predicted_A[:,1],Q_predicted_A[:,0])
     psi_gen_rec_A = process.GetPsiResidual_np(psi_gen_A, psi_rec_A)
     psi_truth_rec_A = process.GetPsiResidual_np(psi_truth_A, psi_rec_A)
@@ -136,7 +140,7 @@ if __name__ == '__main__':
         print("Q_CNN: " , Q_predicted_A)
         print("Q_FCN: " , Q_predicted_A_2)
         print("Q_ensemble: " , Q_ensemble_A)
-        psi_ensemble_A = np.arctan2(Q_ensemble_A[:,2],Q_ensemble_A[:,1])
+        psi_ensemble_A = np.arctan2(Q_ensemble_A[:,1],Q_ensemble_A[:,0])
         psi_gen_ensemble_A = process.GetPsiResidual_np(psi_gen_A, psi_ensemble_A)
         psi_truth_ensemble_A = process.GetPsiResidual_np(psi_truth_A, psi_ensemble_A)
 
