@@ -2236,6 +2236,8 @@ def PlotTrainingComp(nEpochs, train_loss, val_loss, loss_function, output_file):
                 h1.GetYaxis().SetTitle('Mean Squared Error')
         elif loss_function == 'mae':
                 h1.GetYaxis().SetTitle('Mean Absolute Error')
+        elif loss_function == 'rmse':
+                h1.GetYaxis().SetTitle('Root Mean Squared Error')
         else:
                 print("don't recognize that loss function. Pleas enter either mse or mae or update vis_root::PlotTrainingComp()")
 
