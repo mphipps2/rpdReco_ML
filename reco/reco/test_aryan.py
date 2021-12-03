@@ -51,7 +51,7 @@ if __name__ == '__main__':
     model_path_2 = "../models/"+scenario_2
     data_file = "test_A.pickle"
     data_znorm = "test_A_znorm.npy"
-    output_path = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/" + scenario + "Model" + str(model_num) + "/"
+    output_path = "/mnt/d/jzcapa/SaveFiles/" + scenario + "Model" + str(model_num) + "/"
     upperRange_gen = 0.95
     upperRange_truth = 2.5
     upperRange_predictionRes = 0.5
