@@ -3,11 +3,12 @@ import os
 from re import I
 import sys
 from pathlib import Path
+import time
 
 import lib.norm as norm
 import lib.models as models
 import lib.process as process
-import lib.vis_mpl as vis_mpl
+import lib.vis_root as vis_root
 import lib.io as io
 
 from sklearn.model_selection import train_test_split
@@ -22,7 +23,8 @@ if __name__ == '__main__':
     #used for training bdt models
     debug = False
     train_size = 0.8
-    model_num = 1
+    my_test_size = 0.2
+    model_num = 9
     model_type = "bdt"
     model_loss = "rmse"
     use_unit_vector = True
@@ -36,13 +38,14 @@ if __name__ == '__main__':
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/Fre Shava Cado/Documents/VSCode Projects/SaveFiles/"+scenario
-    data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA_nonlinearDigi.pickle"
+    data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA.pickle"
     random_state = 42
-    my_train_size = 0.8
     my_booster = 'dart' #pick between gbtree, gblinear, and dart
     my_learning_rate = 0.05
     my_max_depth = 9
     my_patience = 15
+    my_max = 500
+    my_min_delta = 0.0001
 
 
     print('Getting Dataset...')
@@ -54,8 +57,8 @@ if __name__ == '__main__':
         print("A: ", A)
         print('columns: ', A.columns)    
 
-    train_A, tmpA = train_test_split(A, test_size = 1.-train_size, random_state = random_state) 
-    val_A, test_A = train_test_split(tmpA, test_size = 0.5, random_state = random_state)
+    train_A, tmpA = train_test_split(A, train_size = train_size, test_size = my_test_size, random_state = random_state) 
+    val_A, test_A = train_test_split(tmpA, train_size = 0.5, random_state = random_state)
 
     if make_two_train_samples:
             train_A, train_B = train_test_split(train_A, test_size= 1.-two_trainer_ratio, random_state = random_state)
@@ -107,17 +110,17 @@ if __name__ == '__main__':
     eval_setY = [(train_X, train_y_y), (val_X, val_y_y)]    
 
     #Two trees, one to predict Qx and one to predict Qy
-    modelX = xgb.XGBRegressor(booster = my_booster, learning_rate = my_learning_rate, max_depth = my_max_depth, objective = 'reg:squarederror')
-    modelY = xgb.XGBRegressor(booster = my_booster, learning_rate = my_learning_rate, max_depth = my_max_depth, objective = 'reg:squarederror')
+    modelX = xgb.XGBRegressor(n_estimators = my_max, booster = my_booster, learning_rate = my_learning_rate, max_depth = my_max_depth, objective = 'reg:squarederror')
+    modelY = xgb.XGBRegressor(n_estimators = my_max, booster = my_booster, learning_rate = my_learning_rate, max_depth = my_max_depth, objective = 'reg:squarederror')
     
     print('Starting Training Model X...')
+    start = time.time()
     modelX.fit(
 		train_X, train_y_x, 
 		eval_metric=[model_loss],
-		eval_set=eval_setX, 
-		early_stopping_rounds = my_patience, 
+		eval_set=eval_setX,  
 		verbose=True, 
-		callbacks=[xgb.callback.EarlyStopping(rounds=my_patience, save_best=True)]
+		callbacks=[xgb.callback.EarlyStopping(rounds=my_patience, save_best=True, min_delta = my_min_delta)]
 	)
 
     print('Starting Training Model Y...')
@@ -125,10 +128,10 @@ if __name__ == '__main__':
 		train_X, train_y_y, 
 		eval_metric=[model_loss],
 		eval_set=eval_setY, 
-		early_stopping_rounds = my_patience, 
 		verbose=True, 
-		callbacks=[xgb.callback.EarlyStopping(rounds=my_patience, save_best=True)]
+		callbacks=[xgb.callback.EarlyStopping(rounds=my_patience, save_best=True, min_delta = my_min_delta)]
 	)
+    end = time.time()
 
     print('Training Completed.')
 
@@ -139,16 +142,34 @@ if __name__ == '__main__':
         modelX.save_model(model_path + f'{model_type}X_{model_num}_{model_loss}.json')
         modelY.save_model(model_path + f'{model_type}Y_{model_num}_{model_loss}.json')
 
-    eval_result = modelX.evals_result()
-    train_mse = eval_result['validation_0']['rmse']
-    val_mse = eval_result['validation_1']['rmse']
-    epochs = range(1, len(train_mse) + 1)
+    eval_resultX = modelX.evals_result()
+    eval_resultY = modelY.evals_result()
+    train_rmseX = eval_resultX['validation_0']['rmse']
+    val_rmseX = eval_resultX['validation_1']['rmse']
+    train_rmseY = eval_resultY['validation_0']['rmse']
+    val_rmseY = eval_resultY['validation_1']['rmse']
+    epochsX = range(1, len(train_rmseX) + 1)
+    epochsY = range(1,len(train_rmseY)+1)
+
+    train_min = (np.min(eval_resultX['validation_0']['rmse'])+np.min(eval_resultY['validation_0']['rmse']))/2
+    val_min = (np.min(eval_resultX['validation_1']['rmse'])+np.min(eval_resultY['validation_1']['rmse']))/2    
 
     Path(output_path + f'{model_type}_model{model_num}').mkdir(parents=True, exist_ok=True)
     if make_two_train_samples:
-        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.png')
+        vis_root.PlotTrainingComp(len(epochsX), train_rmseX, val_rmseX, "rmse", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}X_{model_loss}_twotrainer{two_trainer_ratio}.png')
+        vis_root.PlotTrainingComp(len(epochsY), train_rmseY, val_rmseY, "rmse", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}Y_{model_loss}_twotrainer{two_trainer_ratio}.png')
     else:
-        vis_mpl.PlotTrainingComp(len(epochs), train_mse, val_mse, "Mean Squared Error", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}_{model_loss}_.png')
+        vis_root.PlotTrainingComp(len(epochsX), train_rmseX, val_rmseX, "rmse", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}X_{model_loss}_{model_num}.png')
+        vis_root.PlotTrainingComp(len(epochsY), train_rmseY, val_rmseY, "rmse", output_path+f'{model_type}_model{model_num}/ValTrainingComp_{model_type}_model{model_num}Y_{model_loss}_{model_num}.png')
+    f = open(output_path + f'{model_type}_model{model_num}/{model_type}_{model_num}.txt', 'w')
+    f.write('val_loss:' + str(np.min(val_min)))
+    f.write('\nvalX_loss:' + str(np.min(eval_resultX['validation_1']['rmse'])))
+    f.write('\nvalY_loss:' + str(np.min(eval_resultY['validation_1']['rmse'])))
+    f.write('\ntraining size:' + str(train_size))
+    f.write('\n training time: ' + str(end-start))
+    f.close()
 
-    print('loss: ', np.min(train_mse))
-    print('val loss:', np.min(val_mse))    
+
+    print('loss: ', train_min)
+    print('val loss:', val_min)    
+    print('Total time:', str(end-start))
