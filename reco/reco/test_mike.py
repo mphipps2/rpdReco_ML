@@ -22,10 +22,11 @@ import math
 if __name__ == '__main__':
         debug = False
         model_loss = "mse"
-        model_num = 21
+        model_num = 20
         model_type = "cnn"
+#        model_type_1_label = "cnn_array_qpFibers"
         model_type_1_label = "cnn_qqFibers"
-#        model_type_1_label = "cnn_qpFibers"
+#        model_type_1_label = "qq_fibers"
 #        model_type_1_label = "cnn_mini_qpFibers"
         com_label = "com_qqFibers"
 #        com_label = "com_qpFibers"
@@ -33,6 +34,7 @@ if __name__ == '__main__':
         do_com = False
         do_z_norm = False
         do_small_batch = False
+        do_2rpds = False
         use_unit_vector = True
         use_padding = True
         two_trainer_ratio = 0.6
@@ -41,36 +43,43 @@ if __name__ == '__main__':
         model_type_2 = "cnn"
 #        model_type_2_label = "fcn_qqFibers"
 #        model_type_2_label = "cnn_qqFibers"
-        model_type_2_label = "cnn_mini_qpFibers"
-        model_num_2 = 1
+        model_type_2_label = "qp_fibers"
+        model_num_2 = 2
         model_loss_2 = "mse"
         model_2_is_qRod = False
         model_2_is_qq = True
-        do_position_resolution = True
+        do_position_resolution = False
         do_truth_pos_plot = False
         do_reco_prediction_plot = True
         do_subtracted_channel_plot = False
+        do_neutron_dep = False
+        do_pt_nuc_dep = False
         do_z_norm_2 = False
         use_neutrons_2 = False
         do_ensemble_avg = False
         do_ratio_plot_ptnuc = False
-        do_AC_res = False
+        do_AC_res = True
         do_C_side_res = False
-        scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
+        do_q_res = False
+#        scenario = "ToyFermi_array_qpFibers_LHC_noPedNoise/"
 #        scenario = "ToyFermi_qpFibers_LHC_noPedNoise/"
  #       scenario = "ToyFermi_mini_qpFibers_LHC_noPedNoise/"
-#        scenario_2 = "ToyFermi_qqFibers_LHC_noPedNoise/"
-        scenario_2 = "ToyFermi_mini_qpFibers_LHC_noPedNoise/"
+        scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
+        scenario_2 = "ToyFermi_qqFibers_LHC_noPedNoise/"
+#        scenario_2 = "ToyFermi_array_qpFibers_LHC_noPedNoise/"
 #        scenario_2 = "ToyFermi_qpFibers_LHC_noPedNoise/"
         data_path = "../data/"+scenario
         model_path = "../models/"+scenario
         data_path_2 = "../data/"+scenario_2
         model_path_2 = "../models/"+scenario_2
 #        data_file = "test_A_25k.pickle"
-        data_file_2 = "test_A_200k.pickle"
+        data_file_2 = "test_A_100k_rpd1.pickle"
 #        data_file_A = "test_A_100k.pickle"
-        data_file_A = "test_A_800k.pickle"
-        data_file_B = "test_B_800k.pickle"
+#        data_file_A = "test_A_100k_rpd1.pickle"
+        data_file_A = "test_A_100k.pickle"
+        data_file_B = "test_B_100k.pickle"
+        data_file_2A = "test_A_100k_rpd2.pickle"
+        data_file_2B = "test_B_100k_rpd2.pickle"
 #        data_file = "test_A.pickle"
 #        data_file = "test_A_50k.pickle"
         data_znorm_A = "test_znorm_A.npy"
@@ -88,15 +97,17 @@ if __name__ == '__main__':
         # for mini_qp
 #        centerY_bias = 0.272
         #load trained model
-        if debug:
-                print("loading model")
+
+        print("loading model")
 
         # if we are ensembling we train the models with less data
         if do_small_batch:
                 model = keras.models.load_model(model_path + f'model{model_type}_{model_num}_{model_loss}_twotrainer{two_trainer_ratio}.h5',compile = False)
         else:
                 model = keras.models.load_model(model_path + f'model{model_type}_{model_num}_{model_loss}.h5',compile = False)
-                
+
+        if do_2rpds:
+                model2 = keras.models.load_model(model_path_2 + f'model{model_type_2}_{model_num_2}_{model_loss_2}.h5',compile = False)       
         #load dataset
         if debug:
                 print("loading data")
@@ -154,8 +165,6 @@ if __name__ == '__main__':
         # flip gen vec so we're looking at it from same perspective as A side
         psi_gen_B = np.where(psi_gen_B > 0, psi_gen_B -  math.pi, psi_gen_B + math.pi)
 
- 
-
         if use_neutrons:
                 Q_predicted_A = model.predict([neutrons_A_smeared.astype('float'), test_X_A.astype('float')])
                 Q_predicted_B = model.predict([neutrons_B_smeared.astype('float'), test_X_B.astype('float')])
@@ -188,7 +197,26 @@ if __name__ == '__main__':
         psi_rec_B = np.arctan2(Q_predicted_B[:,1],Q_predicted_B[:,0])
         # flip rec vec so we're looking at it from same perspective as A side
         psi_rec_B_flip = np.where(psi_rec_B > 0, psi_rec_B - math.pi, psi_rec_B + math.pi)
-        
+
+
+
+        if do_2rpds:
+                test_2A = pd.read_pickle(data_path + data_file_2A).to_numpy()
+                test_2B = pd.read_pickle(data_path + data_file_2B).to_numpy()
+                test_X_2A = test_2A[:,6:22]
+                test_X_2B = test_2B[:,6:22]
+                test_X_2A = process.reshape_signal(test_X_2A)
+                test_X_2B = process.reshape_signal(test_X_2B)
+                rpdSignals_2A = test_2A[:,6:22]
+                rpdSignals_2B = test_2B[:,6:22]
+                Q_predicted_2A = model2.predict([test_X_2A.astype('float')])
+                Q_predicted_2B = model2.predict([test_X_2B.astype('float')])
+                psi_rec_2A = np.arctan2(Q_predicted_2A[:,1],Q_predicted_2A[:,0])
+                psi_rec_2B = np.arctan2(Q_predicted_2B[:,1],Q_predicted_2B[:,0])
+                psi_rec_2B_flip = np.where(psi_rec_2B > 0, psi_rec_2B - math.pi, psi_rec_2B + math.pi)
+                psi_gen_rec_2A = process.GetPsiResidual_np(psi_gen_A, psi_rec_2A)
+                psi_truth_rec_2A = process.GetPsiResidual_np(psi_truth_A, psi_rec_2A)
+                
 #        print("psi_gen_A " , psi_gen_A)
 #        print("psi_gen_B " , psi_gen_B)
         if do_AC_res:
@@ -218,7 +246,35 @@ if __name__ == '__main__':
                 psi_gen_rec_AB = process.GetPsiResidual_np(psi_gen, psi_rec)                
                 psi_truth_rec_AB = process.GetPsiResidual_np(psi_truth_B, psi_rec)
                 
-                
+                if do_2rpds:                        
+                        epA_rec_2x = np.cos(psi_rec_2A)
+                        epA_rec_2y = np.sin(psi_rec_2A)
+                        epA_rec_2y = np.sin(psi_rec_2A)
+                        epB_rec_2x = -1*np.cos(psi_rec_2B)
+                        epB_rec_2y = -1*np.sin(psi_rec_2B)
+                        epA_rec_1x2x = epA_rec_x + epA_rec_2x
+                        epA_rec_1y2y = epA_rec_y + epA_rec_2y
+                        epB_rec_1x2x = epB_rec_x + epB_rec_2x
+                        epB_rec_1y2y = epB_rec_y + epB_rec_2y
+                        epAB_rec_12x = epA_rec_x + epA_rec_2x + epB_rec_x + epB_rec_2x
+                        epAB_rec_12y = epA_rec_y + epA_rec_2y + epB_rec_y + epB_rec_2y                        
+                        psi_rec_12 = np.arctan2(epAB_rec_12y,epAB_rec_12x)
+
+                        epAB_rec_2x = epA_rec_2x + epB_rec_2x
+                        epAB_rec_2y = epA_rec_2y + epB_rec_2y
+                        psi_rec_2 = np.arctan2(epAB_rec_2y,epAB_rec_2x)
+                        
+                        psi_recA_1xy_2xy = np.arctan2(epA_rec_1y2y,epA_rec_1x2x)
+                        psi_recB_1xy_2xy = np.arctan2(epB_rec_1y2y,epB_rec_1x2x)
+                        psi_rec_diff_2AB = psi_rec_B_flip - psi_rec_A                
+                        psi_gen_rec_12AB = process.GetPsiResidual_np(psi_gen, psi_rec_12)                
+                        psi_truth_rec_12AB = process.GetPsiResidual_np(psi_truth_B, psi_rec_12)
+                        psi_gen_rec_2AB = process.GetPsiResidual_np(psi_gen, psi_rec_2)                
+                        psi_truth_rec_2AB = process.GetPsiResidual_np(psi_truth_B, psi_rec_2)
+
+                        psi_rec_diff_12_AB = psi_recB_1xy_2xy - psi_recA_1xy_2xy
+
+                        
         if do_C_side_res:
                 print(" psi_rec_A: ", psi_rec_A, " psi_rec_B " , psi_rec_B)
                 print(" psi_gen_A: ", psi_gen_A, " psi_gen_B " , psi_gen_B)
@@ -316,32 +372,61 @@ if __name__ == '__main__':
         # integrated residuals (not broken up between # of neutrons and pt_nuc)
         vis_root.PlotResiduals(psi_gen_rec_A, "psi_gen_rec", output_path)
         vis_root.PlotResiduals(psi_truth_rec_A, "psi_truth_rec", output_path)
+        if do_ratio_plot_ptnuc:
+#                vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label , model_type_2_label, output_path, is_gen = True, save_residuals = False)
+                vis_root.PlotRatio_ptnuc_hist( pt_nuc_A, pt_nuc_A_2,  psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label, model_type_2_label, output_path, is_gen = True, save_residuals = True)
+                print("gen_res_model2 " , psi_gen_res_model2)
+#               vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, pt_nuc_A_2, psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label , model_type_2_label, output_path, is_gen = True, save_residuals = False)
+#                vis_root.PlotRatio_ptnuc(pt_nuc_A, psi_gen_rec_A, psi_truth_res_model2, upperRange_gen, model_type_1 , model_type_2, output_path, save_residuals = False)
         if do_small_batch:
                 vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_rec_A, upperRange_gen, f"psi_gen_rec_{two_trainer_filename}", output_path, save_residuals = False)
                 vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_rec_A, upperRange_truth, f"psi_truth_rec_{two_trainer_filename}", output_path, save_residuals = False)
         else:
-                vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_rec_A, upperRange_gen, "psi_gen_rec", output_path, save_residuals = True)
-                vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_rec_A, upperRange_truth, "psi_truth_rec", output_path, save_residuals = False)
+                vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_rec_A, upperRange_gen, "psi_gen_rec", output_path, save_residuals = False)
+                vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_rec_A, upperRange_truth, "psi_truth_rec", output_path, save_residuals = True)
 
-                vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qx_gen_rec_A_unit, upperRange_gen, "qx_unit_gen_rec", output_path, save_residuals = True)
-                vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qy_gen_rec_A_unit, upperRange_gen, "qy_unit_gen_rec", output_path, save_residuals = True)
-
-                vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qx_gen_rec_A, upperRange_truth, "qx_gen_rec", output_path, save_residuals = True)
-                vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qy_gen_rec_A, upperRange_truth, "qy_gen_rec", output_path, save_residuals = True)
+                if do_2rpds:
+                        vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_rec_2A, upperRange_gen, "psi_gen_rec_rpd2", output_path, save_residuals = False)
+                        vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_truth_rec_2A, upperRange_truth, "psi_truth_rec_rpd2", output_path, save_residuals = True)
+                        
+                if do_q_res:
+                        vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qx_gen_rec_A_unit, upperRange_gen, "qx_unit_gen_rec", output_path, save_residuals = False)
+                        vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qy_gen_rec_A_unit, upperRange_gen, "qy_unit_gen_rec", output_path, save_residuals = False)
+                        vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qx_gen_rec_A, upperRange_truth, "qx_gen_rec", output_path, save_residuals = False)
+                        vis_root.PlotPosResiduals_neutron(neutrons_A, pt_nuc_A, qy_gen_rec_A, upperRange_truth, "qy_gen_rec", output_path, save_residuals = False)
 
                 if do_C_side_res:
                         vis_root.PlotResiduals_neutron(neutrons_B, pt_nuc_B, psi_gen_rec_B, upperRange_gen, "psi_gen_rec_C", output_path, save_residuals = True)
                         vis_root.PlotResiduals_neutron(neutrons_B, pt_nuc_B, psi_truth_rec_B, upperRange_truth, "psi_truth_rec_C", output_path, save_residuals = True)
                 if do_AC_res:
-                        # first: average A and C residuals for gen and truth
-#                        neutrons_AC = np.add(neutrons_A+neutrons_B)/2
-                        vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_gen_rec_AB, upperRange_gen, "psi_gen_rec_AC", output_path, save_residuals = True)
-                        vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_truth_rec_AB, upperRange_truth, "psi_truth_rec_AC", output_path, save_residuals = True)
+
+#                        vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_gen_rec_AB, upperRange_gen, "psi_gen_rec_AC", output_path, save_residuals = True)
+#                        vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_truth_rec_AB, upperRange_truth, "psi_truth_rec_AC", output_path, save_residuals = True)
                         vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_AB, 1, 1.01, "AC_det_res",output_path,save_residuals = True)
                         vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_AB, 2, 1.01, "AC_det_res",output_path,save_residuals = False)
                         vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_AB, 3, 1.01, "AC_det_res",output_path,save_residuals = False)
 
-                        vis_root.PlotSPResiduals_neutron(neutrons_AC, pt_nuc_B, sp_QVec_rec_AB, 1.01, "AC_SP_det_res",output_path,save_residuals = True)
+
+                        if do_2rpds:
+                                vis_root.PlotMultiGraphComp_ptnuc(pt_nuc_A, psi_gen_rec_A, psi_gen_rec_2A, psi_gen_rec_AB, psi_gen_rec_2AB, psi_gen_rec_12AB,upperRange_gen,"qp_rpd1", "qp_rpd2", "qp_rpd1_AC", "qp_rpd2_AC", "qp_rpd12_AC", output_path, save_residuals=False)
+                                vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_gen_rec_2AB, upperRange_gen, "psi_gen_rec_AC_rpd2", output_path, save_residuals = True)
+                                vis_root.PlotResiduals_neutron(neutrons_AC, pt_nuc_B, psi_truth_rec_2AB, upperRange_truth, "psi_truth_rec_AC_rpd2", output_path, save_residuals = True)
+                                print("cos 12_AB")
+                                vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_12_AB, 1, 1.01, "AC_det_res_rpd12",output_path,save_residuals = True)
+                                print("cos 2_AB")
+                                vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_2AB, 1, 1.01, "AC_det_res_rpd2",output_path,save_residuals = True)
+ #                               vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_12_AB, 2, 1.01, "AC_det_res_rpd2",output_path,save_residuals = False)
+ #                               vis_root.PlotCosResiduals_neutron(neutrons_AC, pt_nuc_B, psi_rec_diff_12_AB, 3, 1.01, "AC_det_res_rpd2",output_path,save_residuals = False)
+
+#                        vis_root.PlotSPResiduals_neutron(neutrons_AC, pt_nuc_B, sp_QVec_rec_AB, 1.01, "AC_SP_det_res",output_path,save_residuals = True)
+
+
+
+                        if do_neutron_dep:
+                                vis_root.PlotResiduals_neutronDep_1d(neutrons_A, pt_nuc_A, psi_gen_rec_AB, upperRange_gen, "psi_gen_rec", output_path, save_residuals = True)
+                        if do_pt_nuc_dep:
+                                vis_root.PlotResiduals_ptNucDep_1d(neutrons_A, pt_nuc_A, psi_gen_rec_AB, upperRange_gen, "psi_gen_rec", output_path, save_residuals = True)
+
 
         if do_com:
                 vis_root.PlotResiduals_neutron(neutrons_A, pt_nuc_A, psi_gen_com_A, upperRange_gen, "psi_gen_com", output_path, save_residuals = False)
@@ -363,12 +448,7 @@ if __name__ == '__main__':
                 vis_root.PlotTruthPos2(test_A[:,1], test_A[:,2], output_path)
         if do_subtracted_channel_plot:
                 vis_root.PlotSubtractedChannels(test_A[:,6:22], output_path)
-        if do_ratio_plot_ptnuc:
-#                vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label , model_type_2_label, output_path, is_gen = True, save_residuals = False)
-                vis_root.PlotRatio_ptnuc_hist( pt_nuc_A, pt_nuc_A_2,  psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label, model_type_2_label, output_path, is_gen = True, save_residuals = True)
-                print("gen_res_model2 " , psi_gen_res_model2)
-#               vis_root.PlotRatio_ptnuc_hist(pt_nuc_A, pt_nuc_A_2, psi_gen_rec_A, psi_gen_res_model2, upperRange_gen, model_type_1_label , model_type_2_label, output_path, is_gen = True, save_residuals = False)
-#                vis_root.PlotRatio_ptnuc(pt_nuc_A, psi_gen_rec_A, psi_truth_res_model2, upperRange_gen, model_type_1 , model_type_2, output_path, save_residuals = False)
+
         if do_position_resolution:
                 # try again with 400k training; 500k test; 100k valid
                 vis_root.PlotCenterTilesPositionRes(Qx_A, Qy_A, psi_gen_rec_A, neutrons_A, pt_nuc_A, "GenPos", output_path, is_gen = True, save_residuals = True)

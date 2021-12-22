@@ -30,11 +30,11 @@ def root_mean_squared_error(y_true, y_pred):
 if __name__ == '__main__':
 
     debug = False
-    train_size = 0.1
-    test_val_size = 0.9
-    val_size = 0.1
-    test_size = 0.9
-    model_num = 21
+    train_size = 0.5
+    test_val_size = 0.5
+    val_size = 0.5
+    test_size = 0.5
+    model_num = 2
     model_type = "cnn"
 #    model_loss = "root_mean_squared_error"
     model_loss = "mse"
@@ -50,17 +50,17 @@ if __name__ == '__main__':
     subtract = True
     two_trainer_ratio = 0.6
     two_trainer_filename = "40batch"
-    scenario = "ToyFermi_qqFibers_LHC_noPedNoise/"
+    scenario = "ToyFermi_array_qpFibers_LHC_noPedNoise/"
 #    scenario = "ToyFermi_qpFibers_LHC_noPedNoise/"
 #    scenario = "ToyFermi_mini_qpFibers_LHC_noPedNoise/"
 #    scenario = "ToyFermi_qRods_LHC_noPedNoise/"
     data_path = "../data/"+scenario
     model_path = "../models/"+scenario
     output_path = "/mnt/c/Users/mwp89/Desktop/ZDC/RPD/ML_Training/"+scenario
-    data_file = "ToyFermi_qqFibers_LHC_noPedNoiseA.pickle"
-    data_file_B = "ToyFermi_qqFibers_LHC_noPedNoiseB.pickle"
-    test_file = 'test_A_800k.pickle'
-    test_file_B = 'test_B_800k.pickle'
+    data_file = "ToyFermi_array_qpFibers_LHC_noPedNoiseA_rpd2.pickle"
+    data_file_B = "ToyFermi_array_qpFibers_LHC_noPedNoiseB_rpd2.pickle"
+    test_file = 'test_A_100k_rpd2.pickle'
+    test_file_B = 'test_B_100k_rpd2.pickle'
 #    data_file = "ToyFermi_qpFibers_LHC_noPedNoiseA.pickle"
 #    data_file = "ToyFermi_mini_qpFibers_LHC_noPedNoiseA.pickle"
 #    data_file = "A.pickle"

@@ -77,7 +77,10 @@ def PlotPredictionResiduals(psi_res, model_type, model_type_2, b_name, output_di
 
                 
 def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, output_dir, save_residuals = False):
+        print('inside func ')
         gROOT.SetStyle('ATLAS')
+#        gStyle.SetOptFit(0)
+        print ('bins')
         bins = 100
         groupLabels = [22.5, 27.5, 32.5, 37.5]
         neutrons = [20, 25, 30, 35, 40]
@@ -86,7 +89,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
         parameter = 2
         print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
         tree = ops_root.MakeTree_2(numParticles, pt_nuc, psi_res, b_name)
-        
+        side = "A"
+        if "AC" in b_name:
+                side = "AC"
         #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
         x = array('f',[])
         ex = array('f',[])
@@ -120,9 +125,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                         temp_h1 = gDirectory.Get('temp_h1')
                         
                         if "gen" in b_name:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-'+side+'}-\Psi_{1}^{Rec-'+side+'} [rad]')
                         else:
-                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-'+side+'}-\Psi_{1}^{Rec-'+side+'} [rad]')
                         temp_h1.GetYaxis().SetTitle('Counts')
 
                         temp_h1.Draw()
@@ -137,9 +142,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                         else:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
                         if j == len(groupLabels)-1:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec}")
                         else:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec} < "+str(pt_nuc_vals[j+1]))
 
                         text.SetFillStyle(0)
                         text.SetLineColor(0)
@@ -151,9 +156,9 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                         c2.SetFillColor(kWhite)
                         if save_residuals:
                                 if "gen" in b_name:
-                                        c2.SaveAs(output_dir+f'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
+                                        c2.SaveAs(output_dir+f'Residual_{b_name}_{side}_pt'+str(i)+'neutrons'+str(j)+'.png')
                                 else:
-                                        c2.SaveAs(output_dir+f'Residual_{b_name}_A_pt'+str(i)+'neutrons'+str(j)+'.png')
+                                        c2.SaveAs(output_dir+f'Residual_{b_name}_{side}_pt'+str(i)+'neutrons'+str(j)+'.png')
 
 
         mg = TMultiGraph()
@@ -168,17 +173,17 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                 tge.SetMarkerColor(color)
                 
                 if highPt < 55:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}<' + str(highPt))
                 else:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}')
                 tge.SetLineColor(color)
                 tge.SetMarkerStyle(21)
                 mg.Add(tge)
 
         if "gen" in b_name:
-                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
+                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Gen-'+side+'}-\Psi_{1}^{Rec-'+side+'}} [rad]')
         else:
-                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
+                mg.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Truth-'+side+'}-\Psi_{1}^{Rec-'+side+'}} [rad]')
         mg.GetXaxis().SetLimits(20.,40.)
         mg.GetYaxis().SetRangeUser(0,upperRange)
         mg.GetYaxis().SetLimits(0,upperRange)
@@ -191,6 +196,7 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
         l1 = TLine()
         l1.SetLineStyle(kDashed)
         l1.SetLineColor(kBlack)
+
 
         c3.cd()
         mg.Draw('AP')
@@ -206,6 +212,230 @@ def PlotResiduals_neutron(numParticles, pt_nuc, psi_res, upperRange, b_name, out
                 c3.SaveAs(output_dir+f'NeutronDepResolution_{b_name}_A.png')
 
 
+
+
+
+
+
+
+def PlotResiduals_ptNucDep_1d(numParticles, pt_nuc, psi_res, upperRange, b_name, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        pt_nuc_histo_range = [5, 50]
+        group_labels = [10, 20, 30, 40, 50]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+
+        tree1 = ops_root.MakeTree_2(numParticles, pt_nuc, psi_res, b_name)        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+
+        x = array('f',[])
+        ex = array('f',[])
+        y_1 = array('f',[])
+        ey_1 = array('f',[])
+        y_2 = array('f',[])
+        ey_2 = array('f',[])
+
+        n = len(group_labels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+
+
+        for i in range(len(ptLabels)):
+                nBin = group_labels[i]
+                x.append(nBin)
+                ex.append(0)
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                lowerNeutronCut = TCut(f'numParticles >= 20')
+                upperNeutronCut = TCut(f'numParticles < 40')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut + lowerNeutronCut + upperNeutronCut
+                tree1.Draw(b_name + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c2 = TCanvas('c2','c2', 750,  600)
+                c2.cd()
+                
+                temp_h1 = gDirectory.Get('temp_h1')
+                
+
+                temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-AC}-\Psi_{1}^{Rec-AC} [rad]')
+                        
+                temp_h1.GetYaxis().SetTitle('Counts')
+                temp_h1.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h1,parameter)
+                y_1.append(sigma)
+                ey_1.append(error)
+
+                c2.Modified()
+                c2.SetFillColor(kWhite)
+                if save_residuals:
+                        c2.SaveAs(output_dir+f'Residual_gen_1dptNuc_{b_name}_AC_pt'+str(i)+'.png')
+
+
+        c1 = TCanvas("c1", "c1", 550, 500)
+        gStyle.SetOptStat(0)
+        gStyle.SetErrorX(0)
+        tge = TGraphErrors(n, x[0:5], y_1[0:5], ex[0:5], ey_1[0:5])
+        tge.SetTitle(';#it{p}_{T}^{spec};\sigma_{\Psi_{1}^{Gen-AC}-\Psi_{1}^{Rec-AC}} [rad]')
+
+        tge.GetYaxis().SetRangeUser(0,upperRange)
+        tge.GetYaxis().SetLimits(0,upperRange)
+
+        tge.Fit("pol1")
+        f = tge.GetFunction("pol1")
+        f.SetLineColor(kRed)
+        
+        tge.Draw("APE")
+        txt = TPaveText(0.61,0.75,0.88,0.81,"brNDC")
+        txt.AddText("20 #leq N_{Neutrons} < 40")
+        txt.SetTextFont(43);
+        txt.SetTextSize(21);
+        txt.SetFillStyle(0)
+        txt.SetLineColor(0)
+        txt.SetShadowColor(0)
+        txt.Draw()
+        
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+
+        for i in range(len(pt_nuc_vals)-1):
+                l1.DrawLine(15 + i*10, tge.GetYaxis().GetXmin(),15 + i*10, tge.GetYaxis().GetXmax())
+                
+        c1.SaveAs(output_dir+f'ptDepRes_1d_gen_{b_name}_AC_.png')
+
+
+
+                
+
+def PlotResiduals_neutronDep_1d(numParticles, pt_nuc, psi_res, upperRange, b_name, output_dir, save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        bins = 100
+        groupLabels = [22.5, 27.5, 32.5, 37.5]
+        neutrons = [20, 25, 30, 35, 40]
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+        print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
+        tree = ops_root.MakeTree_2(numParticles, pt_nuc, psi_res, b_name)
+        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+        x = array('f',[])
+        ex = array('f',[])
+        y = array('f',[])
+        ey = array('f',[])
+        gStyle.SetPadRightMargin(0.1)
+        n = len(groupLabels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+
+
+        for j in range(len(groupLabels)):
+                nBin = groupLabels[j]
+                x.append(nBin)
+                ex.append(0)
+                lowPt = float(25)
+                lowerNeutronCut = TCut(f'numParticles >= {nBin-2}')
+                upperNeutronCut = TCut(f'numParticles < {nBin+3}')
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+
+                
+                        
+                cut = lowerNeutronCut + upperNeutronCut + lowerPtCut
+                tree.Draw(b_name + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c2 = TCanvas('c2','c2', 750,  600)
+                c2.cd()
+                
+                temp_h1 = gDirectory.Get('temp_h1')
+                        
+                if "gen" in b_name:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-AC}-\Psi_{1}^{Rec-AC} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-AC}-\Psi_{1}^{Rec-AC} [rad]')
+                temp_h1.GetYaxis().SetTitle('Counts')
+
+                temp_h1.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h1,parameter)
+                y.append(sigma)
+                ey.append(error)
+                print ("sigma ",sigma)
+                text = TPaveText(0.65,0.65,0.9,0.9,"brNDC")
+                text.AddText(str(neutrons[j])+" #leq N_{neutrons} < "+str(neutrons[j+1]))
+
+                text.AddText("25 #leq #it{p}_{T}^{spec}")
+
+                text.SetFillStyle(0)
+                text.SetLineColor(0)
+                text.SetShadowColor(0)
+                #                        text.SetBorderSize(1)
+                #                       text.SetFillColor(0)
+                text.Draw()
+                c2.Modified()
+                c2.SetFillColor(kWhite)
+                if save_residuals:
+                        c2.SaveAs(output_dir+f'Residual_neutronDep1d_{b_name}_AC_pt'+'neutrons'+str(j)+'.png')
+ 
+#        mg = TMultiGraph()
+        
+        tge = TGraphErrors(n, x[0:4], y[0:4], ex[0:4], ey[0:4])
+
+
+
+        if "gen" in b_name:
+                tge.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Gen-AC}-\Psi_{1}^{Rec-AC}} [rad]')
+        else:
+                tge.SetTitle(';N_{neutrons};\sigma_{\Psi_{1}^{Truth-AC}-\Psi_{1}^{Rec-AC}} [rad]')
+        tge.GetXaxis().SetLimits(20.,40.)
+        tge.GetYaxis().SetRangeUser(0,upperRange)
+        tge.GetYaxis().SetLimits(0,upperRange)
+        
+        w = 750
+        h = 600
+        
+        gStyle.SetOptFit(111)
+        c3 = TCanvas('c3','c3', w, h)
+
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+
+        c3.cd()
+        tge.Draw('APE')
+        tge.Fit("pol1")
+        f = tge.GetFunction("pol1")
+        f.SetLineColor(kRed)
+        txt = TPaveText(0.18,0.83,0.5,0.89,"brNDC")
+        txt.AddText("25 #leq #it{p}_{T}^{spec} [MeV/c]")
+        txt.SetTextFont(43);
+        txt.SetTextSize(21);
+        txt.SetFillStyle(0)
+        txt.SetLineColor(0)
+        txt.SetShadowColor(0)
+        txt.Draw()
+        
+        for i in range(len(groupLabels)-1):
+                l1.DrawLine(25 + i*5, tge.GetYaxis().GetXmin(),25+i*5, tge.GetYaxis().GetXmax())
+        c3.cd()
+        c3.SetFillColor(kWhite)
+        if "gen" in b_name:
+                c3.SaveAs(output_dir+f'NeutronDepResolution_1d_{b_name}_AC.png')
+        else:
+                c3.SaveAs(output_dir+f'NeutronDepResolution_1d_{b_name}_AC.png')
+
+
+
+
+
+
+                
 
 def PlotPosResiduals_neutron(numParticles, pt_nuc, pos_res, upperRange, b_name, output_dir, save_residuals = False):
         gROOT.SetStyle('ATLAS')
@@ -270,9 +500,9 @@ def PlotPosResiduals_neutron(numParticles, pt_nuc, pos_res, upperRange, b_name, 
                         else:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
                         if j == len(groupLabels)-1:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec}")
                         else:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec} < "+str(pt_nuc_vals[j+1]))
 
                         text.SetFillStyle(0)
                         text.SetLineColor(0)
@@ -298,9 +528,9 @@ def PlotPosResiduals_neutron(numParticles, pt_nuc, pos_res, upperRange, b_name, 
                 tge.SetMarkerColor(color)
                 
                 if highPt < 55:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}<' + str(highPt))
                 else:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}')
                 tge.SetLineColor(color)
                 tge.SetMarkerStyle(21)
                 mg.Add(tge)
@@ -348,9 +578,7 @@ def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_nam
         ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
         parameter = 2
 #        print("plotResiduals_neutron shape pt_nuc_A " , pt_nuc.shape, " shape numParticlesA " , numParticles, " length ", len(numParticles))
-        print ("k ", k , " psi_res_orig " , psi_res)
         psi_res = np.cos(k*psi_res)
-        print("psi_cos_res: " , psi_res) 
         tree = ops_root.MakeTree_2_cos(numParticles, pt_nuc, psi_res, b_name)
         
         #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
@@ -386,9 +614,9 @@ def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_nam
                         temp_h1 = gDirectory.Get('temp_h1')
                         
                         if k == 2:
-                                temp_h1.GetXaxis().SetTitle('cos2(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
+                                temp_h1.GetXaxis().SetTitle('cos(2(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}))')
                         elif k == 3:
-                                temp_h1.GetXaxis().SetTitle('cos3(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
+                                temp_h1.GetXaxis().SetTitle('cos(3(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}))')
                         elif k == 1:
                                 temp_h1.GetXaxis().SetTitle('cos(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C})')
 
@@ -399,19 +627,17 @@ def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_nam
                         cos_mean = temp_h1.GetMean()
                         cos_error = temp_h1.GetMeanError()
                         multConst = sqrt(cos_mean) / cos_mean 
-                        print ("cos_mean ",cos_mean, " cos_error: " ,cos_error, "sqrt(cos_mean) ",sqrt(cos_mean), " sqrt(cos_error): " ,sqrt(cos_error), " multConst * cos_error: " , multConst * cos_error)
                         y.append(sqrt(cos_mean))
                         ey.append(cos_error*multConst)
-                        print ("cos_mean ",cos_mean)
                         text = TPaveText(0.6,0.7,0.85,0.9,"brNDC")
                         if i == len(ptLabels)-1:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons}")
                         else:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
                         if j == len(groupLabels)-1:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec}")
                         else:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec} < "+str(pt_nuc_vals[j+1]))
 
                         text.SetFillStyle(0)
                         text.SetLineColor(0)
@@ -436,18 +662,18 @@ def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_nam
                 tge.SetMarkerColor(color)
                 
                 if highPt < 55:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}<' + str(highPt))
                 else:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}')
                 tge.SetLineColor(color)
                 tge.SetMarkerStyle(21)
                 mg.Add(tge)
                 if k==1:
-                        mg.SetTitle(';N_{neutrons};\sqrt{< cos(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+                        mg.SetTitle(';N_{neutrons};Res(\Psi_{1}^{A|C})')
                 elif k==2:
-                        mg.SetTitle(';N_{neutrons};\sqrt{< cos2(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+                        mg.SetTitle(';N_{neutrons};Res(2\Psi_{1}^{A|C})')
                 elif k==3:
-                        mg.SetTitle(';N_{neutrons};\sqrt{< cos3(\Psi_{1}^{Rec-A}-\Psi_{1}^{Rec-C}) >}')
+                        mg.SetTitle(';N_{neutrons};Res(3\Psi_{1}^{A|C})')
 
         mg.GetXaxis().SetLimits(20.,40.)
         mg.GetYaxis().SetRangeUser(0,upperRange)
@@ -456,6 +682,8 @@ def PlotCosResiduals_neutron(numParticles, pt_nuc, psi_res, k, upperRange, b_nam
         w = 750
         h = 600
 
+        print(b_name, " COS RESOLUTIONS k " , k , " " , y)
+        print(b_name, " COS errors k " , k , " " , ey)
         c3 = TCanvas('c3','c3', w, h)
 
         l1 = TLine()
@@ -544,9 +772,9 @@ def PlotSPResiduals_neutron(numParticles, pt_nuc, sp_QVec_rec_AB, upperRange, b_
                         else:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
                         if j == len(groupLabels)-1:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec}")
                         else:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec} < "+str(pt_nuc_vals[j+1]))
 
                         text.SetFillStyle(0)
                         text.SetLineColor(0)
@@ -571,9 +799,9 @@ def PlotSPResiduals_neutron(numParticles, pt_nuc, sp_QVec_rec_AB, upperRange, b_
                 tge.SetMarkerColor(color)
                 
                 if highPt < 55:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}<' + str(highPt))
                 else:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}')
                 tge.SetLineColor(color)
                 tge.SetMarkerStyle(21)
                 mg.Add(tge)
@@ -605,6 +833,323 @@ def PlotSPResiduals_neutron(numParticles, pt_nuc, sp_QVec_rec_AB, upperRange, b_
 
 
 
+
+
+
+
+
+
+
+
+def PlotMultiGraphComp_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, psi_res_model3, psi_res_model4, psi_res_model5, upperRange, b_name1, b_name2, b_name3, b_name4, b_name5, output_dir,  save_residuals = False):
+        gROOT.SetStyle('ATLAS')
+        is_gen = True
+        bins = 100
+        pt_nuc_vals = [5, 15, 25, 35, 45]
+        group_labels = [10, 20, 30, 40, 50]
+        ptLabels = ['pt0', 'pt1', 'pt2', 'pt3', 'pt4']
+        parameter = 2
+        print("plotResiduals_neutron shape pt_nuc_A " , np.shape(pt_nuc))
+        tree1 = ops_root.MakeTree_3(pt_nuc, psi_res_model1, b_name1)
+        tree2 = ops_root.MakeTree_3(pt_nuc, psi_res_model2, b_name2)
+        tree3 = ops_root.MakeTree_3(pt_nuc, psi_res_model3, b_name3)
+        tree4 = ops_root.MakeTree_3(pt_nuc, psi_res_model4, b_name4)
+        tree5 = ops_root.MakeTree_3(pt_nuc, psi_res_model5, b_name5)
+        
+        #arrays are to be organized with x pertaining to a certain bin, then all sigmas pertaining
+
+        x = array('f',[])
+        ex = array('f',[])
+        y_1 = array('f',[])
+        ey_1 = array('f',[])
+        y_2 = array('f',[])
+        ey_2 = array('f',[])
+        y_3 = array('f',[])
+        ey_3 = array('f',[])
+        y_4 = array('f',[])
+        ey_4 = array('f',[])
+        y_5 = array('f',[])
+        ey_5 = array('f',[])
+
+        n = len(group_labels)
+        colors = [kBlue, kCyan+1, kSpring, kOrange, kRed]
+
+
+        for i in range(len(ptLabels)):
+                nBin = group_labels[i]
+                x.append(nBin)
+                ex.append(0)
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut
+                tree1.Draw(b_name1 + ' >> temp_h1(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c2 = TCanvas('c2','c2', 750,  600)
+                c2.cd()
+                
+                temp_h1 = gDirectory.Get('temp_h1')
+                
+                if is_gen:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                temp_h1.GetYaxis().SetTitle('Counts')
+                temp_h1.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h1,parameter)
+                y_1.append(sigma)
+                ey_1.append(error)
+                print ("sigma error model 1: ",error)
+
+                c2.Modified()
+                c2.SetFillColor(kWhite)
+                if save_residuals:
+                        if is_gen:
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name1}_A_pt'+str(i)+'.png')
+                        else:
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name1}_A_pt'+str(i)+'.png')
+
+        for i in range(len(ptLabels)):
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut
+                tree2.Draw(b_name2 + ' >> temp_h2(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c2 = TCanvas('c2','c2', 750,  600)
+                c2.cd()
+                
+                temp_h2 = gDirectory.Get('temp_h2')
+                
+                if is_gen:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                temp_h2.GetYaxis().SetTitle('Counts')
+                temp_h2.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h2,parameter)
+                y_2.append(sigma)
+                ey_2.append(error)
+                print ("sigma error 2: ",error)
+
+                c2.Modified()
+                c2.SetFillColor(kWhite)
+                if save_residuals:
+                        if is_gen:
+                                c2.SaveAs(output_dir+f'Residual_gen_{b_name2}_A_pt'+str(i)+'.png')
+                        else:
+                                c2.SaveAs(output_dir+f'Residual_truth_{b_name2}_A_pt'+str(i)+'.png')
+
+
+
+
+
+
+        for i in range(len(ptLabels)):
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut
+                tree3.Draw(b_name3 + ' >> temp_h3(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c3 = TCanvas('c3','c3', 750,  600)
+                c3.cd()
+                
+                temp_h3 = gDirectory.Get('temp_h3')
+                
+                if is_gen:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                temp_h3.GetYaxis().SetTitle('Counts')
+                temp_h3.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h3,parameter)
+                y_3.append(sigma)
+                ey_3.append(error)
+                print ("error model 3: ",error)
+
+                c3.Modified()
+                c3.SetFillColor(kWhite)
+                if save_residuals:
+                        if is_gen:
+                                c3.SaveAs(output_dir+f'Residual_gen_{b_name3}_A_pt'+str(i)+'.png')
+                        else:
+                                c3.SaveAs(output_dir+f'Residual_truth_{b_name3}_A_pt'+str(i)+'.png')
+
+
+
+        for i in range(len(ptLabels)):
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut
+                tree4.Draw(b_name4 + ' >> temp_h4(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c4 = TCanvas('c4','c4', 750,  600)
+                c4.cd()
+                
+                temp_h4 = gDirectory.Get('temp_h4')
+                
+                if is_gen:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                temp_h4.GetYaxis().SetTitle('Counts')
+                temp_h4.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h4,parameter)
+                y_4.append(sigma)
+                ey_4.append(error)
+                print ("e model 4: ",error)
+
+                c4.Modified()
+                c4.SetFillColor(kWhite)
+                if save_residuals:
+                        if is_gen:
+                                c4.SaveAs(output_dir+f'Residual_gen_{b_name4}_A_pt'+str(i)+'.png')
+                        else:
+                                c4.SaveAs(output_dir+f'Residual_truth_{b_name4}_A_pt'+str(i)+'.png')
+
+
+
+
+
+        for i in range(len(ptLabels)):
+                lowPt = float(i*10 + 5)
+                highPt = float(i*10 + 15)
+                lowerPtCut = TCut(f'pt_nuclear >= {lowPt}')
+                if highPt <= 45:
+                        upperPtCut = TCut(f'pt_nuclear < {highPt}')
+                else:
+                        upperPtCut = TCut('pt_nuclear < 100000')
+                        
+                cut = lowerPtCut + upperPtCut
+                tree5.Draw(b_name5 + ' >> temp_h5(50,-TMath::Pi,TMath::Pi)', cut)
+                
+                c5 = TCanvas('c5','c5', 750,  600)
+                c5.cd()
+                
+                temp_h5 = gDirectory.Get('temp_h5')
+                
+                if is_gen:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A} [rad]')
+                else:
+                        temp_h1.GetXaxis().SetTitle('\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A} [rad]')
+                        
+                temp_h5.GetYaxis().SetTitle('Counts')
+                temp_h5.Draw()
+
+                sigma, error = ops_root.GaussianFitGet(temp_h5,parameter)
+                y_5.append(sigma)
+                ey_5.append(error)
+                print ("e model 5: ",error)
+
+                c5.Modified()
+                c5.SetFillColor(kWhite)
+                if save_residuals:
+                        if is_gen:
+                                c5.SaveAs(output_dir+f'Residual_gen_{b_name5}_A_pt'+str(i)+'.png')
+                        else:
+                                c5.SaveAs(output_dir+f'Residual_truth_{b_name5}_A_pt'+str(i)+'.png')
+
+
+        mg = TMultiGraph()
+
+        tge_1 = TGraphErrors(n, x[:len(ptLabels)], y_1[:len(ptLabels)], ex[:len(ptLabels)], ey_1[:len(ptLabels)])
+        tge_1.SetTitle(b_name1)
+        tge_1.SetMarkerStyle(kFullCircle)
+        mg.Add(tge_1,'P')
+        
+        tge_2 = TGraphErrors(n, x[:len(ptLabels)], y_2[:len(ptLabels)], ex[:len(ptLabels)], ey_2[:len(ptLabels)])
+        tge_2.SetTitle(b_name2)
+        tge_2.SetMarkerStyle(kFullCircle)
+        mg.Add(tge_2,'P')
+        
+        tge_3 = TGraphErrors(n, x[:len(ptLabels)], y_3[:len(ptLabels)], ex[:len(ptLabels)], ey_3[:len(ptLabels)])
+        tge_3.SetTitle(b_name3)
+        tge_3.SetMarkerStyle(kFullCircle)
+        mg.Add(tge_3,'P')
+        
+        tge_4 = TGraphErrors(n, x[:len(ptLabels)], y_4[:len(ptLabels)], ex[:len(ptLabels)], ey_4[:len(ptLabels)])
+        tge_4.SetTitle(b_name4)
+        tge_4.SetMarkerStyle(kFullCircle)
+        mg.Add(tge_4,'P')
+
+        tge_5 = TGraphErrors(n, x[:len(ptLabels)], y_5[:len(ptLabels)], ex[:len(ptLabels)], ey_5[:len(ptLabels)])
+        tge_5.SetTitle(b_name5)
+        tge_5.SetMarkerStyle(kFullCircle)
+        mg.Add(tge_5,'P')
+
+        
+        if is_gen:
+                mg.SetTitle(';#it{p}_{T}^{spec} [MeV/c];\sigma_{\Psi_{1}^{Gen}-\Psi_{1}^{Rec}} [rad]')
+        else:
+                mg.SetTitle(';#it{p}_{T}^{spec} [MeV/c];\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
+        mg.GetXaxis().SetLimits(5.,55)
+        mg.GetYaxis().SetRangeUser(0,upperRange)
+        mg.GetYaxis().SetLimits(0,upperRange)
+        w = 750
+        h = 600
+
+        c6 = TCanvas('c6','c6', w, h)
+        
+        gStyle.SetPalette(kTemperatureMap)
+        l1 = TLine()
+        l1.SetLineStyle(kDashed)
+        l1.SetLineColor(kBlack)
+        mg.Draw('A PMC')
+        c6.BuildLegend(x1=0.61,y1=0.67,x2=0.85,y2=0.92).SetBorderSize(0)
+        for i in range(len(group_labels)-1):
+                l1.DrawLine(pt_nuc_vals[i+1], mg.GetYaxis().GetXmin(), pt_nuc_vals[i+1], mg.GetYaxis().GetXmax())
+
+        c6.cd()
+        c6.SetFillColor(kWhite)
+
+        if is_gen:
+                c6.SaveAs(output_dir+f'ptDepResRatio_gen_{b_name1}_{b_name2}_{b_name3}_{b_name4}_{b_name5}.png')
+        else:
+                c6.SaveAs(output_dir+f'ptDepResRatio_truth_Resolution_{b_name1}_{b_name2}_{b_name3}_{b_name4}_{b_name5}.png')
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1, b_name2, output_dir, is_gen = True, save_residuals = False):
         gROOT.SetStyle('ATLAS')
         bins = 100
@@ -729,9 +1274,9 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
         mg.Add(tge_2)
 
         if is_gen:
-                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
+                mg.SetTitle(';#it{p}_{T}^{spec};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
         else:
-                mg.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
+                mg.SetTitle(';#it{p}_{T}^{spec};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
         mg.GetXaxis().SetLimits(5.,55)
         mg.GetYaxis().SetRangeUser(0,upperRange)
         mg.GetYaxis().SetLimits(0,upperRange)
@@ -752,7 +1297,7 @@ def PlotRatio_ptnuc(pt_nuc, psi_res_model1, psi_res_model2, upperRange, b_name1,
         c1.cd(2)
         print("pad 2; bottom offset: ", c1.cd(2).GetYlowNDC())
         tge_ratio = ops_root.myTGraphErrorsDivide(tge_1,tge_2)
-#        tge_ratio.SetTitle(';#it{p}_{T}^{nuc}; model 1 / model 2')
+#        tge_ratio.SetTitle(';#it{p}_{T}^{spec}; model 1 / model 2')
 #        tge_ratio.SetMarkerColor(kBlack)
 #        tge_ratio.SetLineColor(kBlack)
 #        tge_ratio.SetMarkerStyle(kFullCircle)
@@ -881,9 +1426,9 @@ def PlotRatio_ptnuc_hist(pt_nuc, pt_nuc_2, psi_res_model1, psi_res_model2, upper
                 h2.SetBinError(i+1,ey_2[i])
 
         if is_gen:
-                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
+                h1.SetTitle(';#it{p}_{T}^{spec};\sigma_{\Psi_{1}^{Gen-A}-\Psi_{1}^{Rec-A}} [rad]')
         else:
-                h1.SetTitle(';#it{p}_{T}^{nuc};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
+                h1.SetTitle(';#it{p}_{T}^{spec};\sigma_{\Psi_{1}^{Truth-A}-\Psi_{1}^{Rec-A}} [rad]')
 
         color = kBlue
 #        maxratio = 1.04
@@ -2130,9 +2675,9 @@ def PlotPredictionResiduals_neutron(numParticles, pt_nuc, psi_res, model_type, m
                         else:
                                 text.AddText(str(neutrons[i])+" #leq N_{neutrons} < "+str(neutrons[i+1]))
                         if j == len(groupLabels)-1:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc}")
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec}")
                         else:
-                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{nuc} < "+str(pt_nuc_vals[j+1]))
+                                text.AddText(str(pt_nuc_vals[j])+" #leq #it{p}_{T}^{spec} < "+str(pt_nuc_vals[j+1]))
 
                         text.SetFillStyle(0)
                         text.SetLineColor(0)
@@ -2158,9 +2703,9 @@ def PlotPredictionResiduals_neutron(numParticles, pt_nuc, psi_res, model_type, m
                 tge.SetMarkerColor(color)
                 
                 if highPt < 55:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}<' + str(highPt))
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}<' + str(highPt))
                 else:
-                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{nuc}')
+                        tge.SetTitle(str(lowPt)+'\leq p_{T}^{spec}')
                 tge.SetLineColor(color)
                 tge.SetMarkerStyle(21)
                 mg.Add(tge)

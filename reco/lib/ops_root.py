@@ -187,6 +187,14 @@ def MakeTree_6_float32(reco_x, reco_y):
         myTree = array2tree(reco_x)
         array2tree(reco_y, tree = myTree)
         return myTree
+def MakeTree_6b_float32(reco_x, reco_y,pt_nuc):
+        reco_x.dtype = [('reco_x','float32')]
+        reco_y.dtype = [('reco_y','float32')]
+        pt_nuc.dtype = [('pt_nuc','float64')]
+        myTree = array2tree(reco_x)
+        array2tree(reco_y, tree = myTree)
+        array2tree(pt_nuc, tree = myTree)
+        return myTree
 
 
 def MakeTree_7(reco_x, reco_y, psi_res, neutrons, pt_nuc, b_name):
